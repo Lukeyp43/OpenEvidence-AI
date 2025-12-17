@@ -2,7 +2,7 @@ import os
 import aqt
 from aqt import mw, gui_hooks
 from aqt.qt import *
-from aqt.qt import QDockWidget, QVBoxLayout, Qt, QUrl, QWidget, QHBoxLayout, QPushButton, QLabel, QCursor
+from aqt.qt import QDockWidget, QVBoxLayout, Qt, QUrl, QWidget, QHBoxLayout, QPushButton, QLabel, QCursor, QPainter
 from aqt.utils import showInfo, tooltip
 
 # Global reference to prevent garbage collection
@@ -28,17 +28,17 @@ class CustomTitleBar(QWidget):
         # Add stretch to push buttons to the right
         layout.addStretch()
         
-        # Float/Undock button with SVG icon
+        # Float/Undock button with high-quality SVG icon
         self.float_button = QPushButton()
         self.float_button.setFixedSize(24, 24)
         self.float_button.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
         
-        # Create smaller SVG icon for float button
-        float_icon_svg = """
-        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <rect x="1.5" y="1.5" width="9" height="9" stroke="white" stroke-width="1" fill="none" rx="1"/>
-            <path d="M4.5 1.5 L4.5 4.5 L1.5 4.5" stroke="white" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M7.5 10.5 L7.5 7.5 L10.5 7.5" stroke="white" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+        # Create high-resolution SVG icon for float button
+        float_icon_svg = """<?xml version="1.0" encoding="UTF-8"?>
+        <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="6" y="6" width="36" height="36" stroke="white" stroke-width="3" fill="none" rx="3"/>
+            <path d="M18 6 L18 18 L6 18" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M30 42 L30 30 L42 30" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
         """
         
@@ -46,15 +46,26 @@ class CustomTitleBar(QWidget):
         try:
             from PyQt6.QtGui import QIcon, QPixmap
             from PyQt6.QtCore import QByteArray, QSize
+            from PyQt6.QtSvg import QSvgRenderer
         except ImportError:
             from PyQt5.QtGui import QIcon, QPixmap
             from PyQt5.QtCore import QByteArray, QSize
+            from PyQt5.QtSvg import QSvgRenderer
         
+        # Render SVG at higher resolution for crisp display
         svg_bytes = QByteArray(float_icon_svg.encode())
-        pixmap = QPixmap()
-        pixmap.loadFromData(svg_bytes)
+        renderer = QSvgRenderer(svg_bytes)
+        pixmap = QPixmap(48, 48)
+        try:
+            pixmap.fill(Qt.GlobalColor.transparent)
+        except:
+            pixmap.fill(Qt.transparent)
+        painter = QPainter(pixmap)
+        renderer.render(painter)
+        painter.end()
+        
         self.float_button.setIcon(QIcon(pixmap))
-        self.float_button.setIconSize(QSize(12, 12))
+        self.float_button.setIconSize(QSize(14, 14))
         
         self.float_button.setStyleSheet("""
             QPushButton {
@@ -69,23 +80,32 @@ class CustomTitleBar(QWidget):
         self.float_button.clicked.connect(self.toggle_floating)
         layout.addWidget(self.float_button)
         
-        # Close button with SVG icon
+        # Close button with high-quality SVG icon
         self.close_button = QPushButton()
         self.close_button.setFixedSize(24, 24)
         self.close_button.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
         
-        # Create smaller SVG icon for close button
-        close_icon_svg = """
-        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M2 2 L10 10 M10 2 L2 10" stroke="white" stroke-width="1.2" stroke-linecap="round"/>
+        # Create high-resolution SVG icon for close button
+        close_icon_svg = """<?xml version="1.0" encoding="UTF-8"?>
+        <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M8 8 L40 40 M40 8 L8 40" stroke="white" stroke-width="4" stroke-linecap="round"/>
         </svg>
         """
         
+        # Render SVG at higher resolution for crisp display
         svg_bytes_close = QByteArray(close_icon_svg.encode())
-        pixmap_close = QPixmap()
-        pixmap_close.loadFromData(svg_bytes_close)
+        renderer_close = QSvgRenderer(svg_bytes_close)
+        pixmap_close = QPixmap(48, 48)
+        try:
+            pixmap_close.fill(Qt.GlobalColor.transparent)
+        except:
+            pixmap_close.fill(Qt.transparent)
+        painter_close = QPainter(pixmap_close)
+        renderer_close.render(painter_close)
+        painter_close.end()
+        
         self.close_button.setIcon(QIcon(pixmap_close))
-        self.close_button.setIconSize(QSize(12, 12))
+        self.close_button.setIconSize(QSize(14, 14))
         
         self.close_button.setStyleSheet("""
             QPushButton {
