@@ -46,3 +46,6 @@ meta.json
 .venv
 env/
 venv/
+
+# Markdown files
+*.md
