@@ -397,6 +397,7 @@ class SettingsListView(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.parent_panel = parent
+        self.revert_timers = {}  # Track revert timers by button
         self.setup_ui()
         self.load_keybindings()
 
@@ -468,6 +469,12 @@ class SettingsListView(QWidget):
 
     def refresh_list(self):
         """Refresh the keybinding cards"""
+        # Stop and clear all active revert timers before deleting widgets
+        for timer in self.revert_timers.values():
+            if timer and timer.isActive():
+                timer.stop()
+        self.revert_timers.clear()
+        
         # Clear existing cards
         while self.list_layout.count():
             child = self.list_layout.takeAt(0)
@@ -616,9 +623,7 @@ class SettingsListView(QWidget):
                 background: rgba(239, 68, 68, 0.1);
             }
         """)
-        # Store reference to edit button so we can hide it during confirm
-        delete_btn.setProperty("edit_btn", edit_btn)
-        delete_btn.clicked.connect(lambda: self.handle_delete_click(delete_btn, index))
+        delete_btn.clicked.connect(lambda: self.handle_delete_click(delete_btn, edit_btn, index))
         card_layout.addWidget(delete_btn)
 
         # Card background
@@ -632,7 +637,7 @@ class SettingsListView(QWidget):
 
         return card
 
-    def handle_delete_click(self, button, index):
+    def handle_delete_click(self, button, edit_btn, index):
         """Handle delete button click with confirmation"""
         state = button.property("state")
 
@@ -658,62 +663,93 @@ class SettingsListView(QWidget):
             """)
 
             # Hide edit button to prevent card overflow
-            edit_btn = button.property("edit_btn")
             if edit_btn:
                 edit_btn.hide()
 
             # Start 3-second timer to revert
-            QTimer.singleShot(3000, lambda: self.revert_delete_button(button))
+            timer = QTimer()
+            timer.setSingleShot(True)
+            timer.timeout.connect(lambda: self.revert_delete_button(button, edit_btn))
+            timer.start(3000)
+            # Store timer reference in instance dict so we can cancel it if user confirms
+            self.revert_timers[id(button)] = timer
 
         elif state == "confirm":
             # Second click - actually delete
-            self.delete_keybinding(index)
-
-    def revert_delete_button(self, button):
-        """Revert delete button to normal state after timeout"""
-        if button.property("state") == "confirm":
-            button.setText("")
-            button.setProperty("state", "normal")
-
-            # Show edit button again
-            edit_btn = button.property("edit_btn")
-            if edit_btn:
-                edit_btn.show()
-
-            # Recreate delete icon
-            delete_icon_svg = """<?xml version="1.0" encoding="UTF-8"?>
-            <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M16 10V6h16v4M8 10h32M12 10v28h24V10" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M20 18v14M28 18v14" stroke="white" stroke-width="3" stroke-linecap="round"/>
-            </svg>
-            """
-
-            svg_bytes_delete = QByteArray(delete_icon_svg.encode())
-            renderer_delete = QSvgRenderer(svg_bytes_delete)
-            pixmap_delete = QPixmap(48, 48)
+            # Cancel the revert timer since we're deleting
+            button_id = id(button)
+            if button_id in self.revert_timers:
+                timer = self.revert_timers[button_id]
+                if timer and timer.isActive():
+                    timer.stop()
+                del self.revert_timers[button_id]
+            
+            # Disconnect button to prevent further clicks during deletion
             try:
-                pixmap_delete.fill(Qt.GlobalColor.transparent)
+                button.clicked.disconnect()
             except:
-                pixmap_delete.fill(Qt.transparent)
-            painter_delete = QPainter(pixmap_delete)
-            renderer_delete.render(painter_delete)
-            painter_delete.end()
+                pass
+            
+            # Defer deletion with longer delay to ensure click event fully completes
+            QTimer.singleShot(50, lambda: self.delete_keybinding(index))
 
-            button.setIcon(QIcon(pixmap_delete))
-            button.setIconSize(QSize(16, 16))
-            # Restore original button size
-            button.setFixedSize(32, 32)
+    def revert_delete_button(self, button, edit_btn):
+        """Revert delete button to normal state after timeout"""
+        try:
+            # Check if button still exists and hasn't been deleted
+            if not button or not hasattr(button, 'property'):
+                return
+            
+            if button.property("state") == "confirm":
+                button.setText("")
+                button.setProperty("state", "normal")
 
-            button.setStyleSheet("""
-                QPushButton {
-                    background: transparent;
-                    border: none;
-                    border-radius: 4px;
-                }
-                QPushButton:hover {
-                    background: rgba(239, 68, 68, 0.1);
-                }
-            """)
+                # Clean up timer reference
+                button_id = id(button)
+                if button_id in self.revert_timers:
+                    del self.revert_timers[button_id]
+
+                # Show edit button again
+                if edit_btn:
+                    edit_btn.show()
+
+                # Recreate delete icon
+                delete_icon_svg = """<?xml version="1.0" encoding="UTF-8"?>
+                <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M16 10V6h16v4M8 10h32M12 10v28h24V10" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M20 18v14M28 18v14" stroke="white" stroke-width="3" stroke-linecap="round"/>
+                </svg>
+                """
+
+                svg_bytes_delete = QByteArray(delete_icon_svg.encode())
+                renderer_delete = QSvgRenderer(svg_bytes_delete)
+                pixmap_delete = QPixmap(48, 48)
+                try:
+                    pixmap_delete.fill(Qt.GlobalColor.transparent)
+                except:
+                    pixmap_delete.fill(Qt.transparent)
+                painter_delete = QPainter(pixmap_delete)
+                renderer_delete.render(painter_delete)
+                painter_delete.end()
+
+                button.setIcon(QIcon(pixmap_delete))
+                button.setIconSize(QSize(16, 16))
+                # Restore original button size
+                button.setFixedSize(32, 32)
+
+                button.setStyleSheet("""
+                    QPushButton {
+                        background: transparent;
+                        border: none;
+                        border-radius: 4px;
+                    }
+                    QPushButton:hover {
+                        background: rgba(239, 68, 68, 0.1);
+                    }
+                """)
+        except RuntimeError:
+            # Button was deleted before timer fired, ignore
+            pass
 
     def delete_keybinding(self, index):
         """Delete a keybinding"""
