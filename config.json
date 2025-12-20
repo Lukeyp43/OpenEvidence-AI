@@ -4,10 +4,16 @@
     "onboarding_completed": false,
     "keybindings": [
         {
-            "name": "Default",
+            "name": "Daily Driver",
             "keys": ["Shift", "Control/Meta"],
-            "question_template": "Can you explain this to me:\nQuestion:\n{question}",
-            "answer_template": "Can you explain this to me:\nQuestion:\n{question}\n\nAnswer:\n{answer}"
+            "question_template": "{front}",
+            "answer_template": "Question:\n{front}\nAnswer:\n{back}"
+        },
+        {
+            "name": "Deep Dive",
+            "keys": ["Shift", "Alt"],
+            "question_template": "Can you explain this to me:\nQuestion:\n{front}",
+            "answer_template": "Can you explain this to me:\nQuestion:\n{front}\n\nAnswer:\n{back}"
         }
     ]
 }

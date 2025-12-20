@@ -684,12 +684,20 @@ class OpenEvidencePanel(QWidget):
 
         # If no keybindings, add default
         if not keybindings:
-            keybindings = [{
-                "name": "Default",
-                "keys": ["Shift", "Control/Meta"],
-                "question_template": "Can you explain this to me:\nQuestion:\n{question}",
-                "answer_template": "Can you explain this to me:\nQuestion:\n{question}\n\nAnswer:\n{answer}"
-            }]
+            keybindings = [
+                {
+                    "name": "Daily Driver",
+                    "keys": ["Shift", "Control/Meta"],
+                    "question_template": "{front}",
+                    "answer_template": "Question:\n{front}\nAnswer:\n{back}"
+                },
+                {
+                    "name": "Deep Dive",
+                    "keys": ["Shift", "Alt"],
+                    "question_template": "Can you explain this to me:\nQuestion:\n{front}",
+                    "answer_template": "Can you explain this to me:\nQuestion:\n{front}\n\nAnswer:\n{back}"
+                }
+            ]
 
         # Convert keybindings to JSON and inject
         keybindings_json = json.dumps(keybindings)
@@ -707,12 +715,20 @@ class OpenEvidencePanel(QWidget):
 
         # If no keybindings, add default
         if not keybindings:
-            keybindings = [{
-                "name": "Default",
-                "keys": ["Shift", "Control/Meta"],
-                "question_template": "Can you explain this to me:\nQuestion:\n{question}",
-                "answer_template": "Can you explain this to me:\nQuestion:\n{question}\n\nAnswer:\n{answer}"
-            }]
+            keybindings = [
+                {
+                    "name": "Daily Driver",
+                    "keys": ["Shift", "Control/Meta"],
+                    "question_template": "{front}",
+                    "answer_template": "Question:\n{front}\nAnswer:\n{back}"
+                },
+                {
+                    "name": "Deep Dive",
+                    "keys": ["Shift", "Alt"],
+                    "question_template": "Can you explain this to me:\nQuestion:\n{front}",
+                    "answer_template": "Can you explain this to me:\nQuestion:\n{front}\n\nAnswer:\n{back}"
+                }
+            ]
 
         # Generate text for each keybinding
         card_texts = []
@@ -720,11 +736,11 @@ class OpenEvidencePanel(QWidget):
             if is_showing_answer:
                 # Use answer template
                 template = kb.get("answer_template", "")
-                text = template.replace("{question}", current_card_question).replace("{answer}", current_card_answer)
+                text = template.replace("{front}", current_card_question).replace("{back}", current_card_answer)
             else:
                 # Use question template
                 template = kb.get("question_template", "")
-                text = template.replace("{question}", current_card_question)
+                text = template.replace("{front}", current_card_question)
 
             card_texts.append(text)
 

@@ -66,8 +66,8 @@ class SettingsEditorView(QWidget):
         self.keybinding = keybinding or {
             "name": "New Shortcut",
             "keys": [],
-            "question_template": "Can you explain this to me:\nQuestion:\n{question}",
-            "answer_template": "Can you explain this to me:\nQuestion:\n{question}\n\nAnswer:\n{answer}"
+            "question_template": "Can you explain this to me:\nQuestion:\n{front}",
+            "answer_template": "Can you explain this to me:\nQuestion:\n{front}\n\nAnswer:\n{back}"
         }
         self.recording_keys = False
         self.pressed_keys = []  # Use list to preserve key press order
@@ -102,55 +102,159 @@ class SettingsEditorView(QWidget):
         self.key_display.clicked.connect(self.start_recording)
         content_layout.addWidget(self.key_display)
 
-        # Section 2: Question Template
-        q_label = QLabel("Question Context")
+        # Section 2: Front Side Template
+        # Row 1: Header (Label only)
+        q_label = QLabel("Front Side Template")
         q_label.setStyleSheet("color: #ffffff; font-size: 14px; font-weight: bold; margin-top: 12px;")
         content_layout.addWidget(q_label)
 
+        # Row 2: Input
         self.question_template = QTextEdit()
         self.question_template.setPlainText(self.keybinding.get("question_template", ""))
         self.question_template.setStyleSheet("""
             QTextEdit {
-                background: #2c2c2c;
-                color: #ffffff;
+                background-color: #2c2c2c;
                 border: 1px solid #374151;
-                border-radius: 8px;
-                padding: 12px;
+                border-radius: 6px;
+                padding: 8px;
+                color: white;
                 font-size: 13px;
                 font-family: Menlo, Monaco, 'Courier New', monospace;
+            }
+            QScrollBar:vertical {
+                width: 8px;
+                background: transparent;
+            }
+            QScrollBar::handle:vertical {
+                background: #4b5563;
+                border-radius: 4px;
+            }
+            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+                height: 0px;
             }
         """)
         self.question_template.setMinimumHeight(100)
         content_layout.addWidget(self.question_template)
 
-        q_help = QLabel("Use {question} to insert card content")
-        q_help.setStyleSheet("color: #9ca3af; font-size: 11px;")
-        content_layout.addWidget(q_help)
+        # Row 3: Footer (Helper text left, chips right)
+        q_footer_layout = QHBoxLayout()
+        q_footer_layout.setSpacing(8)
+        q_footer_layout.setContentsMargins(0, 4, 0, 0)
 
-        # Section 3: Answer Template
-        a_label = QLabel("Answer Context")
+        q_help = QLabel("Only {front} is available.")
+        q_help.setStyleSheet("color: #6b7280; font-size: 11px;")
+        q_footer_layout.addWidget(q_help)
+
+        q_footer_layout.addStretch()
+
+        q_front_chip = QPushButton("+ {front}")
+        q_front_chip.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        q_front_chip.setFixedHeight(24)
+        q_front_chip.setStyleSheet("""
+            QPushButton {
+                background: #374151;
+                color: #ffffff;
+                border: none;
+                border-radius: 12px;
+                padding: 4px 12px;
+                font-size: 11px;
+                font-weight: 500;
+            }
+            QPushButton:hover {
+                background: #4b5563;
+            }
+        """)
+        q_front_chip.clicked.connect(lambda: self.insert_variable(self.question_template, "{front}"))
+        q_footer_layout.addWidget(q_front_chip)
+
+        content_layout.addLayout(q_footer_layout)
+
+        # Section 3: Back Side Template
+        # Row 1: Header (Label only)
+        a_label = QLabel("Back Side Template")
         a_label.setStyleSheet("color: #ffffff; font-size: 14px; font-weight: bold; margin-top: 12px;")
         content_layout.addWidget(a_label)
 
+        # Row 2: Input
         self.answer_template = QTextEdit()
         self.answer_template.setPlainText(self.keybinding.get("answer_template", ""))
         self.answer_template.setStyleSheet("""
             QTextEdit {
-                background: #2c2c2c;
-                color: #ffffff;
+                background-color: #2c2c2c;
                 border: 1px solid #374151;
-                border-radius: 8px;
-                padding: 12px;
+                border-radius: 6px;
+                padding: 8px;
+                color: white;
                 font-size: 13px;
                 font-family: Menlo, Monaco, 'Courier New', monospace;
+            }
+            QScrollBar:vertical {
+                width: 8px;
+                background: transparent;
+            }
+            QScrollBar::handle:vertical {
+                background: #4b5563;
+                border-radius: 4px;
+            }
+            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+                height: 0px;
             }
         """)
         self.answer_template.setMinimumHeight(100)
         content_layout.addWidget(self.answer_template)
 
-        a_help = QLabel("Use {question} and {answer} to insert card content")
-        a_help.setStyleSheet("color: #9ca3af; font-size: 11px;")
-        content_layout.addWidget(a_help)
+        # Row 3: Footer (Helper text left, chips right)
+        a_footer_layout = QHBoxLayout()
+        a_footer_layout.setSpacing(8)
+        a_footer_layout.setContentsMargins(0, 4, 0, 0)
+
+        a_help = QLabel("Both {front} and {back} are available.")
+        a_help.setStyleSheet("color: #6b7280; font-size: 11px;")
+        a_footer_layout.addWidget(a_help)
+
+        a_footer_layout.addStretch()
+
+        a_front_chip = QPushButton("+ {front}")
+        a_front_chip.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        a_front_chip.setFixedHeight(24)
+        a_front_chip.setStyleSheet("""
+            QPushButton {
+                background: #374151;
+                color: #ffffff;
+                border: none;
+                border-radius: 12px;
+                padding: 4px 12px;
+                font-size: 11px;
+                font-weight: 500;
+            }
+            QPushButton:hover {
+                background: #4b5563;
+            }
+        """)
+        a_front_chip.clicked.connect(lambda: self.insert_variable(self.answer_template, "{front}"))
+        a_footer_layout.addWidget(a_front_chip)
+
+        a_back_chip = QPushButton("+ {back}")
+        a_back_chip.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        a_back_chip.setFixedHeight(24)
+        a_back_chip.setStyleSheet("""
+            QPushButton {
+                background: #374151;
+                color: #ffffff;
+                border: none;
+                border-radius: 12px;
+                padding: 4px 12px;
+                font-size: 11px;
+                font-weight: 500;
+            }
+            QPushButton:hover {
+                background: #4b5563;
+            }
+        """)
+        a_back_chip.clicked.connect(lambda: self.insert_variable(self.answer_template, "{back}"))
+        a_footer_layout.addWidget(a_back_chip)
+
+        content_layout.addLayout(a_footer_layout)
 
         content_layout.addStretch()
 
@@ -212,6 +316,12 @@ class SettingsEditorView(QWidget):
                     font-weight: 600;
                 }
             """)
+
+    def insert_variable(self, text_edit, variable):
+        """Insert a variable at the current cursor position in a QTextEdit"""
+        cursor = text_edit.textCursor()
+        cursor.insertText(variable)
+        text_edit.setFocus()
 
     def _on_change(self):
         """Detect if any changes were made and enable/disable save button"""
@@ -348,14 +458,13 @@ class SettingsEditorView(QWidget):
             return
 
         question_template = self.question_template.toPlainText().strip()
-        if not question_template or "{question}" not in question_template:
-            tooltip("Question template must contain {question}")
+
+        # Only validation: {back} cannot be used in Front Side Template (back content isn't available yet)
+        if "{back}" in question_template:
+            tooltip("Front Side Template cannot use {back} - only {front} is available when viewing the question")
             return
 
         answer_template = self.answer_template.toPlainText().strip()
-        if not answer_template or "{question}" not in answer_template:
-            tooltip("Answer template must contain {question}")
-            return
 
         # Check for duplicate keybindings
         config = mw.addonManager.getConfig(__name__) or {}
@@ -473,12 +582,20 @@ class SettingsListView(QWidget):
         self.keybindings = config.get("keybindings", [])
 
         if not self.keybindings:
-            self.keybindings = [{
-                "name": "Default",
-                "keys": ["Shift", "Control/Meta"],
-                "question_template": "Can you explain this to me:\nQuestion:\n{question}",
-                "answer_template": "Can you explain this to me:\nQuestion:\n{question}\n\nAnswer:\n{answer}"
-            }]
+            self.keybindings = [
+                {
+                    "name": "Daily Driver",
+                    "keys": ["Shift", "Control/Meta"],
+                    "question_template": "{front}",
+                    "answer_template": "Question:\n{front}\nAnswer:\n{back}"
+                },
+                {
+                    "name": "Deep Dive",
+                    "keys": ["Shift", "Alt"],
+                    "question_template": "Can you explain this to me:\nQuestion:\n{front}",
+                    "answer_template": "Can you explain this to me:\nQuestion:\n{front}\n\nAnswer:\n{back}"
+                }
+            ]
             config["keybindings"] = self.keybindings
             mw.addonManager.writeConfig(__name__, config)
 
