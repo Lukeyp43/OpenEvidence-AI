@@ -93,9 +93,22 @@ def store_current_card_text(card):
         question_html = card.question()
         answer_html = card.answer()
 
-        # Clean both
+        # Clean the question
         current_card_question = clean_html_text(question_html)
-        current_card_answer = clean_html_text(answer_html)
+        
+        # For answer, we need to extract just the back content
+        # In Anki, answer_html includes the question, so we need to get only the back part
+        full_answer_text = clean_html_text(answer_html)
+        
+        # Remove the question portion from the answer to get just the back
+        # This handles cases where the answer includes the question
+        if current_card_question and current_card_question in full_answer_text:
+            # Find where the question ends in the answer and take everything after
+            question_end = full_answer_text.find(current_card_question) + len(current_card_question)
+            current_card_answer = full_answer_text[question_end:].strip()
+        else:
+            # If we can't find the question in the answer, just use the full answer
+            current_card_answer = full_answer_text
 
         # Check which side is showing
         if mw.reviewer and mw.reviewer.state == "answer":
