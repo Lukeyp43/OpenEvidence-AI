@@ -11,6 +11,7 @@ A modern Anki addon that integrates OpenEvidence directly into your Anki interfa
 - ⚡ **Quick Access**: Toggle the panel on/off with a single click
 - ⌨️ **Smart Templates**: 3 preset keyboard shortcuts to auto-fill OpenEvidence with card content
 - ⚙️ **Customizable Settings**: Edit keyboard shortcuts and create custom templates via the settings panel
+- ✨ **Cursor-Style Highlight Actions**: Select text on flashcards to show a floating action bar with quick actions
 
 ## Installation
 
@@ -76,6 +77,37 @@ Click the **Settings** button (gear icon) in the panel's title bar to:
 - Edit existing keyboard shortcuts
 - Modify templates for each preset
 - Create your own custom templates with `{front}` and `{back}` placeholders
+
+### Cursor-Style Highlight Actions ✨
+
+When reviewing flashcards, you can now **highlight any text** on the card to show a floating action bar with quick actions. This feature works seamlessly while studying.
+
+**How to use:**
+1. **Select text** on any flashcard by clicking and dragging
+2. A floating action bar appears above your selection with two options:
+   - **Add to Chat**: Instantly populates the OpenEvidence search box with your selected text
+   - **Ask Question**: Opens an input field where you can type a question about the selected text
+
+**Add to Chat:**
+- Click "Add to Chat" to send the selected text directly to OpenEvidence
+- The panel opens automatically (if closed) and the text appears in the search box
+- You can then edit the text or hit Enter to search
+
+**Ask Question:**
+- Click "Ask Question" to open an input field
+- Type your question about the selected text
+- Press Enter or click the arrow button to submit
+- Your question and the selected text (as context) are sent to OpenEvidence and auto-submitted
+
+**Example workflow:**
+1. You're reviewing a card about "myocardial infarction"
+2. Highlight the term "ST elevation"
+3. Click "Ask Question"
+4. Type "What causes this finding?"
+5. Press Enter
+6. OpenEvidence receives: "What causes this finding?\n\nContext:\nST elevation"
+
+This feature is perfect for quickly researching unfamiliar terms or concepts without leaving your study flow!
 
 ## Requirements
 

@@ -19,6 +19,7 @@ zip -r ../openevidence_panel.ankiaddon \
     panel.py \
     settings.py \
     utils.py \
+    reviewer_highlight.py \
     manifest.json \
     config.json \
     meta.json \

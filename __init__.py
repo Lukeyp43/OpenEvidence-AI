@@ -4,6 +4,7 @@ from aqt.qt import *
 
 from .panel import CustomTitleBar, OpenEvidencePanel, OnboardingWidget
 from .utils import clean_html_text
+from .reviewer_highlight import setup_highlight_hooks
 
 # Global references
 dock_widget = None
@@ -77,10 +78,37 @@ def toggle_panel():
 
 
 def on_webview_did_receive_js_message(handled, message, context):
-    """Handle pycmd messages from toolbar"""
+    """Handle pycmd messages from toolbar and highlight bubble"""
     if message == "openevidence":
         toggle_panel()
         return (True, None)
+
+    # Handle highlight bubble messages
+    if message.startswith("openevidence:add_context:"):
+        # Extract the selected text
+        selected_text = message.replace("openevidence:add_context:", "", 1)
+        try:
+            from urllib.parse import unquote
+            selected_text = unquote(selected_text)
+        except:
+            pass
+        handle_add_context(selected_text)
+        return (True, None)
+
+    if message.startswith("openevidence:ask_query:"):
+        # Extract query and context
+        data = message.replace("openevidence:ask_query:", "", 1)
+        try:
+            from urllib.parse import unquote
+            parts = data.split("|", 1)
+            if len(parts) == 2:
+                query = unquote(parts[0])
+                context = unquote(parts[1])
+                handle_ask_query(query, context)
+        except:
+            pass
+        return (True, None)
+
     return handled
 
 
@@ -128,6 +156,136 @@ def store_current_card_text(card):
         is_showing_answer = False
 
 
+def handle_add_context(selected_text):
+    """Handle 'Add to Chat' action - populate OpenEvidence search with selected text"""
+    global dock_widget
+
+    # Make sure the panel is created and visible
+    if dock_widget is None:
+        create_dock_widget()
+
+    # Show the panel if hidden
+    if not dock_widget.isVisible():
+        dock_widget.show()
+        dock_widget.raise_()
+
+    # Get the panel widget
+    panel = dock_widget.widget()
+    if panel and hasattr(panel, 'web'):
+        # Ensure we're on the web view (not settings)
+        if hasattr(panel, 'show_web_view'):
+            panel.show_web_view()
+
+        # Inject the text into the OpenEvidence search box
+        js_code = """
+        (function() {
+            var searchInput = document.querySelector('input[placeholder*="medical"], input[placeholder*="question"], textarea, input[type="text"]');
+            if (searchInput) {
+                var text = %s;
+
+                // Use native setter for React compatibility
+                var nativeSetter = Object.getOwnPropertyDescriptor(
+                    searchInput.tagName === 'TEXTAREA' ? window.HTMLTextAreaElement.prototype : window.HTMLInputElement.prototype,
+                    'value'
+                ).set;
+                nativeSetter.call(searchInput, text);
+
+                // Dispatch events
+                searchInput.dispatchEvent(new InputEvent('input', { bubbles: true, cancelable: true, inputType: 'insertText', data: text }));
+                searchInput.dispatchEvent(new Event('change', { bubbles: true }));
+
+                // Focus the input
+                searchInput.focus();
+
+                console.log('Anki: Added context to search box');
+            } else {
+                console.log('Anki: Could not find search input');
+            }
+        })();
+        """ % repr(selected_text)
+
+        panel.web.page().runJavaScript(js_code)
+
+
+def handle_ask_query(query, context):
+    """Handle 'Ask Question' action - format and auto-submit to OpenEvidence"""
+    global dock_widget
+
+    # Make sure the panel is created and visible
+    if dock_widget is None:
+        create_dock_widget()
+
+    # Show the panel if hidden
+    if not dock_widget.isVisible():
+        dock_widget.show()
+        dock_widget.raise_()
+
+    # Get the panel widget
+    panel = dock_widget.widget()
+    if panel and hasattr(panel, 'web'):
+        # Ensure we're on the web view (not settings)
+        if hasattr(panel, 'show_web_view'):
+            panel.show_web_view()
+
+        # Format the message with query and context
+        formatted_message = f"{query}\n\nContext:\n{context}"
+
+        # Inject the formatted message and trigger submit
+        js_code = """
+        (function() {
+            var searchInput = document.querySelector('input[placeholder*="medical"], input[placeholder*="question"], textarea, input[type="text"]');
+            if (searchInput) {
+                var text = %s;
+
+                // Use native setter for React compatibility
+                var nativeSetter = Object.getOwnPropertyDescriptor(
+                    searchInput.tagName === 'TEXTAREA' ? window.HTMLTextAreaElement.prototype : window.HTMLInputElement.prototype,
+                    'value'
+                ).set;
+                nativeSetter.call(searchInput, text);
+
+                // Dispatch events
+                searchInput.dispatchEvent(new InputEvent('input', { bubbles: true, cancelable: true, inputType: 'insertText', data: text }));
+                searchInput.dispatchEvent(new Event('change', { bubbles: true }));
+
+                // Focus the input
+                searchInput.focus();
+
+                // Try to find and click the submit button after a short delay
+                setTimeout(function() {
+                    // Look for common submit button patterns
+                    var submitButton = document.querySelector('button[type="submit"]') ||
+                                     document.querySelector('button:has(svg)') ||
+                                     searchInput.closest('form')?.querySelector('button');
+
+                    if (submitButton) {
+                        submitButton.click();
+                        console.log('Anki: Auto-submitted query');
+                    } else {
+                        // Try simulating Enter key press
+                        var enterEvent = new KeyboardEvent('keydown', {
+                            key: 'Enter',
+                            code: 'Enter',
+                            keyCode: 13,
+                            which: 13,
+                            bubbles: true,
+                            cancelable: true
+                        });
+                        searchInput.dispatchEvent(enterEvent);
+                        console.log('Anki: Simulated Enter key');
+                    }
+                }, 100);
+
+                console.log('Anki: Added query with context to search box');
+            } else {
+                console.log('Anki: Could not find search input');
+            }
+        })();
+        """ % repr(formatted_message)
+
+        panel.web.page().runJavaScript(js_code)
+
+
 def add_toolbar_button(links, toolbar):
     """Add OpenEvidence button to the top toolbar"""
     # Create open book SVG icon (matching Anki's icon size and style)
@@ -159,3 +317,5 @@ gui_hooks.top_toolbar_did_init_links.append(add_toolbar_button)
 gui_hooks.main_window_did_init.append(preload_panel)
 gui_hooks.reviewer_did_show_question.append(store_current_card_text)
 gui_hooks.reviewer_did_show_answer.append(store_current_card_text)
+# Set up highlight bubble hooks for reviewer
+setup_highlight_hooks()
