@@ -153,82 +153,82 @@ HIGHLIGHT_BUBBLE_JS = """
         });
     }
 
-    // Render input state with text field and submit button
     function renderInputState() {
         currentState = 'input';
         bubble.innerHTML = `
             <div style="
                 display: flex;
                 flex-direction: column;
-                padding: 1px;
+                padding: 0px; /* Removed padding to reduce overall height */
                 gap: 0px;
                 min-width: 280px;
                 max-width: 380px;
                 position: relative;
             ">
-                <!-- Top row with textarea and X button -->
-                <div style="display: flex; align-items: flex-start; gap: 1px; padding: 0;">
-                <textarea
-                    id="question-input"
-                    placeholder="Ask a question..."
-                    rows="1"
-                    style="
+                <div style="display: flex; align-items: flex-start; gap: 4px; padding: 8px 0 0 2px;">
+                    <textarea
+                        id="question-input"
+                        placeholder="Ask a question..."
+                        rows="1"
+                        style="
+                            background: transparent;
+                            border: none;
+                            color: #ffffff;
+                            padding: 0;           /* Removed padding for tightness */
+                            font-size: 14px;      /* TEXT BIGGER (was 12px) */
+                            font-weight: 500;
+                            outline: none;
+                            flex: 1;
+                            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                            resize: none;
+                            overflow-y: hidden;
+                            min-height: 20px;     /* Adjusted to fit new font size closely */
+                            max-height: 80px;
+                            line-height: 1.3;
+                            word-wrap: break-word;
+                            margin-bottom: 2px;
+                        "
+                    ></textarea>
+                    <button id="close-btn" style="
                         background: transparent;
                         border: none;
-                        color: #ffffff;
-                        padding: 0px 2px;
-                        font-size: 12px;
-                        font-weight: 500;
-                        outline: none;
-                        flex: 1;
-                        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-                        resize: none;
-                        overflow-y: hidden;
-                        min-height: 16px;
-                        max-height: 80px;
-                        line-height: 1.2;
-                        word-wrap: break-word;
-                    "
-                ></textarea>
-                <button id="close-btn" style="
-                    background: transparent;
-                    border: none;
-                    color: #9ca3af;
-                    cursor: pointer;
-                    font-size: 16px;       /* Increased from 12px */
-                    padding: 0;
-                    width: 20px;           /* Increased from 14px */
-                    height: 20px;          /* Increased from 14px */
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    transition: all 0.15s ease;
-                    line-height: 1;
-                    flex-shrink: 0;
-                    margin-top: 2px;       /* Adjusted slightly for new size */
-                    margin-right: 0px;
-                ">✕</button>
-            </div>
+                        color: #9ca3af;
+                        cursor: pointer;
+                        font-size: 14px;
+                        padding: 0;
+                        width: 18px;
+                        height: 18px;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        transition: all 0.15s ease;
+                        line-height: 1;
+                        flex-shrink: 0;
+                        margin-top: 0px;
+                        margin-right: 0px;
+                    ">✕</button>
+                </div>
 
-            <div style="display: flex; justify-content: flex-end; margin-top: -2px;">
-                <button id="submit-btn" style="
-                    background: #3b82f6;
-                    border: none;
-                    color: #ffffff;
-                    padding: 0;
-                    cursor: pointer;
-                    border-radius: 50%;
-                    font-size: 14px;       /* Increased from 9px */
-                    font-weight: 600;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    transition: all 0.15s ease;
-                    width: 20px;           /* Increased from 14px */
-                    height: 20px;          /* Increased from 14px */
-                    flex-shrink: 0;
-                    margin-right: 0px;
-                ">↑</button>
+                <div style="display: flex; justify-content: flex-end; margin-top: -4px;">
+                    <button id="submit-btn" style="
+                        background: #3b82f6;
+                        border: none;
+                        color: #ffffff;
+                        padding: 0;
+                        cursor: pointer;
+                        border-radius: 50%;
+                        font-size: 14px;
+                        font-weight: 600;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        transition: all 0.15s ease;
+                        width: 20px;
+                        height: 20px;
+                        flex-shrink: 0;
+                        margin-right: 0px;
+                    ">↑</button>
+                </div>
             </div>
         `;
 
