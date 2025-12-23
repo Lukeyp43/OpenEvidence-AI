@@ -215,35 +215,39 @@ HIGHLIGHT_BUBBLE_JS = """
                     <div id="context-pill" style="
                         display: flex;
                         align-items: center;
-                        gap: 4px;
+                        gap: 6px;
                         background: rgba(255, 255, 255, 0.05);
                         border: 1px dashed rgba(255, 255, 255, 0.2);
                         border-radius: 12px;
                         padding: 2px 8px;
+                        height: 20px;
+                        box-sizing: border-box;
                         font-size: 10px;
                         color: #9ca3af;
                         cursor: pointer;
                         transition: all 0.15s ease;
-                        max-width: 150px;
+                        max-width: 180px;
                         white-space: nowrap;
                         overflow: hidden;
                     ">
                         <span id="context-text" style="
                             overflow: hidden;
                             text-overflow: ellipsis;
+                            line-height: 1.2;
                         ">Select text +</span>
                         <button id="context-clear" style="
                             display: none;
                             background: transparent;
                             border: none;
-                            color: #9ca3af;
+                            color: inherit;
                             cursor: pointer;
                             font-size: 10px;
                             padding: 0;
-                            width: 12px;
-                            height: 12px;
+                            width: 10px;
+                            height: 10px;
                             flex-shrink: 0;
                             line-height: 1;
+                            opacity: 0.7;
                         ">✕</button>
                     </div>
                     <button id="submit-btn" style="
@@ -284,18 +288,26 @@ HIGHLIGHT_BUBBLE_JS = """
         // Update context pill based on contextText
         function updateContextPill() {
             if (contextText) {
-                // State B: Context Active
+                // State B: Active (Selection)
                 const truncated = contextText.length > 20 ? contextText.substring(0, 20) + '...' : contextText;
-                contextTextSpan.textContent = 'Context: ' + truncated;
+                contextTextSpan.textContent = '"' + truncated + '"';
                 contextClearBtn.style.display = 'block';
-                contextPill.style.background = 'rgba(59, 130, 246, 0.15)';
-                contextPill.style.border = '1px solid rgba(59, 130, 246, 0.3)';
+
+                // Style changes (minimal to maintain same size)
+                contextPill.style.borderStyle = 'solid';
+                contextPill.style.borderColor = 'rgba(255, 255, 255, 0.4)';
+                contextPill.style.color = '#e5e7eb';
+                contextPill.style.background = 'rgba(255, 255, 255, 0.05)';
             } else {
-                // State A: No Context
+                // State A: Empty (Default)
                 contextTextSpan.textContent = 'Select text +';
                 contextClearBtn.style.display = 'none';
+
+                // Reset styles
+                contextPill.style.borderStyle = 'dashed';
+                contextPill.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+                contextPill.style.color = '#9ca3af';
                 contextPill.style.background = 'rgba(255, 255, 255, 0.05)';
-                contextPill.style.border = '1px dashed rgba(255, 255, 255, 0.2)';
             }
         }
 
@@ -307,6 +319,11 @@ HIGHLIGHT_BUBBLE_JS = """
 
         // Focus the input
         setTimeout(() => input.focus(), 0);
+
+        // Initialize context with selectedText if available
+        if (selectedText && !contextText) {
+            contextText = selectedText;
+        }
 
         // Initialize context pill
         updateContextPill();
