@@ -15,7 +15,7 @@ try:
     from PyQt6.QtGui import QIcon, QPixmap, QPainter, QCursor, QColor
     from PyQt6.QtSvg import QSvgRenderer
     from PyQt6.QtWebEngineWidgets import QWebEngineView
-    from PyQt6.QtWebEngineCore import QWebEngineSettings
+    from PyQt6.QtWebEngineCore import QWebEngineSettings, QWebEngineProfile, QWebEnginePage
 except ImportError:
     from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
                                   QDockWidget, QStackedWidget)
@@ -23,15 +23,74 @@ except ImportError:
     from PyQt5.QtGui import QIcon, QPixmap, QPainter, QCursor, QColor
     from PyQt5.QtSvg import QSvgRenderer
     try:
-        from PyQt5.QtWebEngineWidgets import QWebEngineView, QWebEngineSettings
+        from PyQt5.QtWebEngineWidgets import QWebEngineView, QWebEngineSettings, QWebEnginePage
+        try:
+            from PyQt5.QtWebEngineCore import QWebEngineProfile
+        except ImportError:
+            try:
+                from PyQt5.QtWebEngineWidgets import QWebEngineProfile
+            except:
+                QWebEngineProfile = None
     except ImportError:
         from aqt.qt import QWebEngineView
         try:
-            from aqt.qt import QWebEngineSettings
+            from aqt.qt import QWebEngineSettings, QWebEnginePage, QWebEngineProfile
         except:
             QWebEngineSettings = None
+            QWebEnginePage = None
+            QWebEngineProfile = None
 
 from .settings import SettingsListView, SettingsEditorView
+import os
+
+
+# Global persistent profile - must be kept alive for the entire session
+_persistent_profile = None
+
+def get_persistent_profile():
+    """Get or create a persistent QWebEngineProfile for storing cookies/sessions"""
+    global _persistent_profile
+
+    if QWebEngineProfile is None:
+        return None
+
+    # Return existing profile if already created
+    if _persistent_profile is not None:
+        return _persistent_profile
+
+    try:
+        # Create a named profile to avoid off-the-record mode
+        # Store in global to keep it alive for the entire session
+        _persistent_profile = QWebEngineProfile("openevidence")
+
+        # Set persistent cookies policy - saves both session and persistent cookies
+        try:
+            _persistent_profile.setPersistentCookiesPolicy(QWebEngineProfile.PersistentCookiesPolicy.ForcePersistentCookies)
+        except:
+            # Fallback for different Qt versions
+            try:
+                _persistent_profile.setPersistentCookiesPolicy(2)  # ForcePersistentCookies = 2
+            except:
+                pass
+
+        # Set explicit storage paths to ensure persistence
+        try:
+            addon_dir = os.path.dirname(os.path.abspath(__file__))
+            storage_path = os.path.join(addon_dir, "webengine_data")
+            os.makedirs(storage_path, exist_ok=True)
+
+            # Set persistent storage path for cookies and other data
+            _persistent_profile.setPersistentStoragePath(storage_path)
+            _persistent_profile.setCachePath(os.path.join(storage_path, "cache"))
+        except:
+            # If setting custom paths fails, continue with default paths
+            pass
+
+        return _persistent_profile
+    except Exception as e:
+        # If anything fails, return None and use default behavior
+        print(f"OpenEvidence: Failed to create persistent profile: {e}")
+        return None
 
 
 class CustomTitleBar(QWidget):
@@ -345,6 +404,13 @@ class OpenEvidencePanel(QWidget):
         # Create web view for OpenEvidence
         self.web = QWebEngineView(self.web_container)
 
+        # Set up persistent profile for cookies/session storage
+        persistent_profile = get_persistent_profile()
+        if persistent_profile and QWebEnginePage:
+            # Create a page with the persistent profile
+            page = QWebEnginePage(persistent_profile, self.web)
+            self.web.setPage(page)
+
         # Configure settings for faster loading and better preloading
         if QWebEngineSettings:
             try:
@@ -395,7 +461,13 @@ class OpenEvidencePanel(QWidget):
             if hasattr(self, 'loading_overlay'):
                 self.loading_overlay.hide()
             return
-        
+
+        # Add a small delay before first JavaScript call to ensure profile is initialized
+        # This prevents crashes with custom profiles
+        QTimer.singleShot(100, self._check_page_ready)
+
+    def _check_page_ready(self):
+        """Check if page is ready (called after small delay)"""
         # Check if page is truly ready (all resources loaded)
         check_ready_js = """
         (function() {
@@ -404,7 +476,7 @@ class OpenEvidencePanel(QWidget):
                 // Check for OpenEvidence specific elements that indicate page is ready
                 var searchInput = document.querySelector('input[placeholder*="medical"], input[placeholder*="question"], textarea');
                 var logo = document.querySelector('img, svg');
-                
+
                 // If we found key elements, page is ready
                 if (searchInput || logo) {
                     return true;
@@ -413,9 +485,16 @@ class OpenEvidencePanel(QWidget):
             return false;
         })();
         """
-        
-        # Check if page is ready
-        self.web.page().runJavaScript(check_ready_js, self.handle_ready_check)
+
+        # Check if page is ready with error handling
+        try:
+            self.web.page().runJavaScript(check_ready_js, self.handle_ready_check)
+        except Exception as e:
+            print(f"OpenEvidence: Error checking page ready: {e}")
+            # Fallback - just hide loader and show web view
+            if hasattr(self, 'loading_overlay'):
+                self.loading_overlay.hide()
+            self.web.show()
     
     def handle_ready_check(self, is_ready):
         """Handle the result of page ready check"""
@@ -691,7 +770,10 @@ class OpenEvidencePanel(QWidget):
         })();
         """
 
-        self.web.page().runJavaScript(listener_js)
+        try:
+            self.web.page().runJavaScript(listener_js)
+        except Exception as e:
+            print(f"OpenEvidence: Error injecting listener: {e}")
 
         # Also inject the current card texts
         self.update_card_text_in_js()
@@ -728,7 +810,10 @@ class OpenEvidencePanel(QWidget):
         # Convert keybindings to JSON and inject
         keybindings_json = json.dumps(keybindings)
         js_code = f"window.ankiKeybindings = {keybindings_json};"
-        self.web.page().runJavaScript(js_code)
+        try:
+            self.web.page().runJavaScript(js_code)
+        except Exception as e:
+            print(f"OpenEvidence: Error updating keybindings: {e}")
 
     def update_card_text_in_js(self):
         """Update the card texts in the JavaScript context for all keybindings"""
@@ -780,7 +865,10 @@ class OpenEvidencePanel(QWidget):
         if card_texts:
             texts_json = json.dumps(card_texts)
             js_code = f"window.ankiCardTexts = {texts_json};"
-            self.web.page().runJavaScript(js_code)
+            try:
+                self.web.page().runJavaScript(js_code)
+            except Exception as e:
+                print(f"OpenEvidence: Error updating card texts: {e}")
 
 
 class OnboardingWidget(QWidget):
