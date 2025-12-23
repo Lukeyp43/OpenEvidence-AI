@@ -48,7 +48,7 @@ HIGHLIGHT_BUBBLE_JS = """
             background: #1e1e1e;
             border-radius: 8px;
             border: 1px solid #4b5563;
-            padding: 0px 5px;
+            padding: 2px 5px;
             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2);
             z-index: 9999;
             display: none;
@@ -56,7 +56,7 @@ HIGHLIGHT_BUBBLE_JS = """
             font-size: 12px;
             color: #ffffff;
             line-height: 1;
-            min-height: 24px;
+            min-height: 20px;
         `;
         document.body.appendChild(div);
         return div;
@@ -159,13 +159,13 @@ HIGHLIGHT_BUBBLE_JS = """
             <div style="
                 display: flex;
                 flex-direction: column;
-                padding: 0px; /* Removed padding to reduce overall height */
+                padding: 0px;
                 gap: 0px;
                 min-width: 280px;
                 max-width: 380px;
                 position: relative;
             ">
-                <div style="display: flex; align-items: flex-start; gap: 4px; padding: 8px 0 0 2px;">
+                <div style="display: flex; align-items: center; gap: 4px; padding: 7px 6px 6px 8px;">
                     <textarea
                         id="question-input"
                         placeholder="Ask a question..."
@@ -174,19 +174,19 @@ HIGHLIGHT_BUBBLE_JS = """
                             background: transparent;
                             border: none;
                             color: #ffffff;
-                            padding: 0;           /* Removed padding for tightness */
-                            font-size: 14px;      /* TEXT BIGGER (was 12px) */
+                            padding: 0;
+                            font-size: 13px;
                             font-weight: 500;
                             outline: none;
                             flex: 1;
                             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
                             resize: none;
                             overflow-y: hidden;
-                            min-height: 20px;     /* Adjusted to fit new font size closely */
+                            min-height: 10px;
                             max-height: 80px;
-                            line-height: 1.3;
+                            line-height: 1;
                             word-wrap: break-word;
-                            margin-bottom: 2px;
+                            margin: 0;
                         "
                     ></textarea>
                     <button id="close-btn" style="
@@ -194,7 +194,7 @@ HIGHLIGHT_BUBBLE_JS = """
                         border: none;
                         color: #9ca3af;
                         cursor: pointer;
-                        font-size: 14px;
+                        font-size: 13px;
                         padding: 0;
                         width: 18px;
                         height: 18px;
@@ -204,12 +204,13 @@ HIGHLIGHT_BUBBLE_JS = """
                         transition: all 0.15s ease;
                         line-height: 1;
                         flex-shrink: 0;
-                        margin-top: 0px;
-                        margin-right: 0px;
+                        margin: 0;
+                        margin-left: auto;
+                        margin-right: -1px;
                     ">✕</button>
                 </div>
 
-                <div style="display: flex; justify-content: flex-end; margin-top: -4px;">
+                <div style="display: flex; justify-content: flex-end; margin: 0; padding: 0 6px 6px 8px;">
                     <button id="submit-btn" style="
                         background: #3b82f6;
                         border: none;
@@ -217,17 +218,17 @@ HIGHLIGHT_BUBBLE_JS = """
                         padding: 0;
                         cursor: pointer;
                         border-radius: 50%;
-                        font-size: 14px;
+                        font-size: 13px;
                         font-weight: 600;
                         display: flex;
                         align-items: center;
                         justify-content: center;
                         transition: all 0.15s ease;
-                        width: 20px;
-                        height: 20px;
+                        width: 19px;
+                        height: 19px;
                         flex-shrink: 0;
-                        margin-right: 0px;
-                    ">↑</button>
+                        margin: 0;
+                    "><svg width="10" height="10" viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M5 1.5V8.5M5 1.5L2 4.5M5 1.5L8 4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
                 </div>
             </div>
         `;
