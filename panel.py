@@ -962,13 +962,15 @@ class OnboardingWidget(QWidget):
 
     def setup_ui(self):
         # Main outer layout - positions content at "optical center" (15% from top)
+        # Add horizontal margins for edge spacing (16px on each side)
         outer_layout = QVBoxLayout(self)
-        outer_layout.setContentsMargins(0, 0, 0, 0)
+        outer_layout.setContentsMargins(16, 0, 16, 0)
 
         # Add spacing at top (15% of typical height ~600px = 90px)
         outer_layout.addSpacing(90)
 
-        # THE INVISIBLE COLUMN - Container with fixed width (380px)
+        # THE INVISIBLE COLUMN - Container with responsive width
+        # Max width 380px, but will shrink if panel is narrower
         container = QWidget()
         container.setMaximumWidth(380)
         container.setStyleSheet("background: transparent;")
