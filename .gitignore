@@ -20,6 +20,11 @@ meta.json
 # WebEngine cache and sensitive data
 webengine_data/
 
+# Anki user data (runtime generated)
+*.pyc.bak
+*.db
+*.db-journal
+
 # macOS
 .DS_Store
 .AppleDouble
