@@ -259,6 +259,7 @@ class TutorialAccordion(QWidget):
 
         # Header
         header = QWidget()
+        header.setFixedHeight(56)  # Lock header height
         header.setStyleSheet("background: transparent; border-bottom: 1px solid #262626;")
         header_layout = QHBoxLayout(header)
         header_layout.setContentsMargins(24, 16, 16, 16)
@@ -301,6 +302,7 @@ class TutorialAccordion(QWidget):
 
         # Progress section
         progress_widget = QWidget()
+        progress_widget.setFixedHeight(68)  # Lock progress height
         progress_widget.setStyleSheet("background: transparent; border-bottom: 1px solid #262626;")
         progress_layout = QHBoxLayout(progress_widget)
         progress_layout.setContentsMargins(24, 20, 24, 20)
@@ -406,16 +408,12 @@ class TutorialAccordion(QWidget):
     def position_bottom_left(self):
         """Position widget in bottom left corner of Anki window"""
         if mw:
-            # Ensure widget is fully laid out before positioning
-            self.adjustSize()
-
             # Get main window geometry
             mw_geometry = mw.geometry()
 
             # Position in bottom left of Anki window
-            # Use 35% from bottom to ensure no overflow
             x = mw_geometry.x() + 16  # 16px from left edge
-            bottom_offset = int(mw_geometry.height() * 0.35)  # 35% from bottom
+            bottom_offset = int(mw_geometry.height() * 0.35) + 800  # Move up 800px
             y = mw_geometry.y() + mw_geometry.height() - self.height() - bottom_offset
 
             # Safety check: ensure widget doesn't overflow top of window
@@ -427,9 +425,7 @@ class TutorialAccordion(QWidget):
     def toggle_collapse(self):
         self.is_collapsed = not self.is_collapsed
         self.content_widget.setVisible(not self.is_collapsed)
-
-        # Reposition after collapse/expand
-        QTimer.singleShot(10, self.position_bottom_left)
+        # Don't reposition - widget should stay in place
 
     def mark_task_complete(self, item_index, task_index):
         if 0 <= item_index < len(self.accordion_items):
