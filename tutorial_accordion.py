@@ -9,13 +9,13 @@ from aqt.qt import *
 
 try:
     from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
-                                  QPushButton, QCheckBox, QFrame)
+                                  QPushButton, QCheckBox, QFrame, QSizePolicy)
     from PyQt6.QtCore import Qt, QTimer, pyqtSignal, QSize
     from PyQt6.QtGui import QPainter, QCursor, QPixmap
     from PyQt6.QtSvg import QSvgRenderer
 except ImportError:
     from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
-                                  QPushButton, QCheckBox, QFrame)
+                                  QPushButton, QCheckBox, QFrame, QSizePolicy)
     from PyQt5.QtCore import Qt, QTimer, pyqtSignal, QSize
     from PyQt5.QtGui import QPainter, QCursor, QPixmap
     from PyQt5.QtSvg import QSvgRenderer
@@ -41,125 +41,168 @@ class AccordionItem(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
 
-        # Header button
-        self.header_btn = QPushButton()
-        self.header_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
-        self.header_btn.setFixedHeight(72)
-        self.header_btn.clicked.connect(self.toggle)
+        # Header (non-clickable, stationary)
+        header_container = QWidget()
+        header_container.setMinimumHeight(72)
+        header_container.setStyleSheet("background: transparent; border: none;")
 
-        header_layout = QHBoxLayout(self.header_btn)
+        header_layout = QHBoxLayout(header_container)
         header_layout.setContentsMargins(24, 16, 24, 16)
         header_layout.setSpacing(16)
 
         # Icon
         self.icon_label = QLabel()
         self.icon_label.setFixedSize(40, 40)
-        self.icon_label.setStyleSheet("background: transparent; border: none;")
-        self.icon_label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+        self.icon_label.setStyleSheet("background: transparent; border: none; outline: none;")
+        self.icon_label.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.icon_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.update_icon()
         header_layout.addWidget(self.icon_label)
 
-        # Title and description
-        text_container = QWidget()
-        text_container.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
-        text_layout = QVBoxLayout(text_container)
-        text_layout.setContentsMargins(0, 0, 0, 0)
-        text_layout.setSpacing(2)
-
+        # Title only (no description)
         self.title_label = QLabel(self.title_text)
-        self.title_label.setStyleSheet("color: white; font-size: 14px; font-weight: 500; background: transparent; border: none;")
-        text_layout.addWidget(self.title_label)
-
-        self.description_label = QLabel(self.description_text)
-        self.description_label.setStyleSheet("color: #9ca3af; font-size: 13px; background: transparent; border: none;")
-        text_layout.addWidget(self.description_label)
-
-        header_layout.addWidget(text_container)
+        self.title_label.setStyleSheet("color: white; font-size: 16px; font-weight: 500; background: transparent; border: none; outline: none;")
+        self.title_label.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        header_layout.addWidget(self.title_label)
         header_layout.addStretch()
 
-        # Chevron
-        self.chevron_label = QLabel()
-        self.chevron_label.setFixedSize(20, 20)
-        self.chevron_label.setStyleSheet("background: transparent; border: none;")
-        self.chevron_label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
-        self.chevron_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.update_chevron()
-        header_layout.addWidget(self.chevron_label)
+        layout.addWidget(header_container)
 
-        self.header_btn.setStyleSheet("""
-            QPushButton {
-                background: transparent;
-                border: none;
-                text-align: left;
-            }
-            QPushButton:hover {
-                background: rgba(255, 255, 255, 0.03);
-            }
-        """)
-
-        layout.addWidget(self.header_btn)
-
-        # Content container
+        # Content container (always visible)
         self.content_widget = QWidget()
-        self.content_widget.setVisible(False)
+        self.content_widget.setVisible(True)
+        self.content_widget.setStyleSheet("background: transparent; border: none;")
+        self.content_widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
         content_layout = QVBoxLayout(self.content_widget)
         content_layout.setContentsMargins(0, 0, 0, 16)
         content_layout.setSpacing(0)
 
         if self.tasks_data:
             tasks_container = QWidget()
+            tasks_container.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
             tasks_layout = QVBoxLayout(tasks_container)
             tasks_layout.setContentsMargins(64, 0, 24, 0)
             tasks_layout.setSpacing(8)
 
-            for task_data in self.tasks_data:
-                task_widget = self.create_task_widget(task_data)
+            for idx, task_data in enumerate(self.tasks_data):
+                is_last = (idx == len(self.tasks_data) - 1)
+                task_widget = self.create_task_widget(task_data, is_last)
                 tasks_layout.addWidget(task_widget)
 
             content_layout.addWidget(tasks_container)
 
         layout.addWidget(self.content_widget)
 
-    def create_task_widget(self, task_data):
-        """Create a single task row with checkbox"""
-        task_widget = QWidget()
-        task_layout = QHBoxLayout(task_widget)
-        task_layout.setContentsMargins(0, 0, 0, 0)
-        task_layout.setSpacing(12)
+    def create_task_widget(self, task_data, is_last=False):
+        """Create a single task row with custom styling"""
+        task_container = QWidget()
+        task_container.setStyleSheet("background: transparent; border: none;")
+        task_container.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+        container_layout = QHBoxLayout(task_container)
+        container_layout.setContentsMargins(0, 4, 0, 4)
+        container_layout.setSpacing(12)
 
-        checkbox = QCheckBox(task_data["text"])
-        checkbox.setChecked(task_data["completed"])
-        checkbox.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
-        checkbox.setStyleSheet("""
-            QCheckBox {
-                color: #d1d5db;
-                font-size: 13px;
-                spacing: 8px;
-            }
-            QCheckBox::indicator {
-                width: 18px;
-                height: 18px;
-                border-radius: 9px;
-                border: 2px solid #6b7280;
-                background: #1f2937;
-            }
-            QCheckBox::indicator:hover {
-                border-color: #9ca3af;
-            }
-            QCheckBox::indicator:checked {
-                background: #3b82f6;
-                border-color: #3b82f6;
-            }
-            QCheckBox:checked {
-                color: #6b7280;
-            }
-        """)
-        checkbox.stateChanged.connect(self.on_task_changed)
-        self.task_checkboxes.append(checkbox)
-        task_layout.addWidget(checkbox)
+        # Left side: Circle with connecting line
+        left_widget = QWidget()
+        left_widget.setFixedWidth(28)
+        left_widget.setStyleSheet("background: transparent;")
+        left_layout = QVBoxLayout(left_widget)
+        left_layout.setContentsMargins(0, 0, 0, 0)
+        left_layout.setSpacing(0)
 
-        return task_widget
+        # Circle indicator
+        circle_label = QLabel()
+        circle_label.setFixedSize(20, 20)
+        circle_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        # Store reference for updating later
+        if not hasattr(self, 'task_circles'):
+            self.task_circles = []
+        self.task_circles.append(circle_label)
+
+        left_layout.addWidget(circle_label, 0, Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop)
+
+        # Connecting line (if not last task)
+        if not is_last:
+            line = QFrame()
+            line.setFixedWidth(1)
+            line.setStyleSheet("background: #6b7280;")
+            left_layout.addWidget(line, 1, Qt.AlignmentFlag.AlignHCenter)
+        else:
+            left_layout.addStretch()
+
+        container_layout.addWidget(left_widget, 0, Qt.AlignmentFlag.AlignTop)
+
+        # Task text - clickable label
+        task_label = QLabel(task_data["text"])
+        task_label.setWordWrap(True)
+        task_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+        task_label.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        task_label.setStyleSheet("color: #D4D4D4; font-size: 16px; background: transparent; padding: 0px;")
+
+        # Store data for later reference
+        task_label.setProperty("task_data", task_data)
+        task_label.setProperty("circle_label", circle_label)
+        task_label.setProperty("container", task_container)
+
+        # Make it clickable
+        task_label.mousePressEvent = lambda event, cl=circle_label, tl=task_label, tc=task_container: self.toggle_task(cl, tl, tc)
+
+        container_layout.addWidget(task_label, 1, Qt.AlignmentFlag.AlignTop)
+
+        # Store references
+        checkbox_placeholder = QCheckBox()  # Hidden checkbox to maintain compatibility
+        checkbox_placeholder.setVisible(False)
+        checkbox_placeholder.setChecked(task_data["completed"])
+        checkbox_placeholder.setProperty("circle_label", circle_label)
+        checkbox_placeholder.setProperty("task_label", task_label)
+        checkbox_placeholder.setProperty("container", task_container)
+        self.task_checkboxes.append(checkbox_placeholder)
+
+        # Set initial state
+        self.update_task_appearance(circle_label, task_label, task_container, task_data["completed"])
+
+        return task_container
+
+    def toggle_task(self, circle_label, task_label, task_container):
+        """Toggle task completion state"""
+        # Find the corresponding checkbox
+        for checkbox in self.task_checkboxes:
+            if (checkbox.property("circle_label") == circle_label and
+                checkbox.property("task_label") == task_label):
+                # Toggle the checkbox
+                new_state = not checkbox.isChecked()
+                checkbox.setChecked(new_state)
+                # Update appearance
+                self.update_task_appearance(circle_label, task_label, task_container, new_state)
+                self.on_task_changed()
+                break
+
+    def update_task_appearance(self, circle_label, task_label, task_container, is_completed):
+        """Update the visual appearance of a task based on completion state"""
+        if is_completed:
+            # Completed state: Filled blue circle with checkmark
+            filled_circle_svg = """<svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="10" cy="10" r="9" fill="#171717" stroke="#2563EB" stroke-width="2"/>
+                <circle cx="10" cy="10" r="8" fill="#2563EB"/>
+                <path d="M6 10 L9 13 L14 7" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>"""
+            self.set_svg_icon(circle_label, filled_circle_svg)
+
+            # Strikethrough text and gray color
+            task_label.setStyleSheet("color: #737373; font-size: 16px; background: transparent; padding: 0px; text-decoration: line-through;")
+        else:
+            # Uncompleted state: Empty gray circle outline
+            empty_circle_svg = """<svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="10" cy="10" r="9" fill="#171717" stroke="#525252" stroke-width="2"/>
+            </svg>"""
+            self.set_svg_icon(circle_label, empty_circle_svg)
+
+            # Normal text
+            task_label.setStyleSheet("color: #D4D4D4; font-size: 16px; background: transparent; padding: 0px;")
+
+        # No border or background on container
+        task_container.setStyleSheet("background: transparent; border: none;")
 
     def on_task_changed(self):
         self.update_icon()
@@ -179,52 +222,66 @@ class AccordionItem(QWidget):
     def toggle(self):
         self.is_expanded = not self.is_expanded
         self.content_widget.setVisible(self.is_expanded)
-        self.update_chevron()
 
     def collapse(self):
         """Explicitly collapse this item"""
         if self.is_expanded:
             self.is_expanded = False
             self.content_widget.setVisible(False)
-            self.update_chevron()
 
     def update_icon(self):
         if self.is_all_tasks_completed():
             check_svg = """<svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="20" cy="20" r="19" fill="#3b82f6"/>
+                <circle cx="20" cy="20" r="19" fill="#2563EB"/>
                 <path d="M12 20 L17 25 L28 14" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>"""
             self.set_svg_icon(self.icon_label, check_svg)
         else:
-            # Create properly centered icon with consistent viewBox
-            icon_with_color = self.icon_svg.replace('stroke="white"', 'stroke="#999999"')
-            wrapped_svg = f"""<svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="20" cy="20" r="19" fill="#383838"/>
-                <g transform="translate(11, 11) scale(0.9)">
-                    {icon_with_color}
-                </g>
-            </svg>"""
-            self.set_svg_icon(self.icon_label, wrapped_svg)
+            # Create complete SVG icons directly at proper size
+            svg_map = {
+                "document": """<svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="20" cy="20" r="19" fill="#262626"/>
+                    <path d="M12 11 L12 29 L28 29 L28 17 L22 11 Z M22 11 L22 17 L28 17" stroke="#A3A3A3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>""",
+                "search": """<svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="20" cy="20" r="19" fill="#262626"/>
+                    <circle cx="19" cy="19" r="6" stroke="#A3A3A3" stroke-width="2" fill="none"/>
+                    <path d="M23.5 23.5 L27 27" stroke="#A3A3A3" stroke-width="2" stroke-linecap="round"/>
+                </svg>""",
+                "grid": """<svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="20" cy="20" r="19" fill="#262626"/>
+                    <rect x="12" y="12" width="6" height="6" rx="1" stroke="#A3A3A3" stroke-width="2" fill="none"/>
+                    <rect x="22" y="12" width="6" height="6" rx="1" stroke="#A3A3A3" stroke-width="2" fill="none"/>
+                    <rect x="12" y="22" width="6" height="6" rx="1" stroke="#A3A3A3" stroke-width="2" fill="none"/>
+                    <rect x="22" y="22" width="6" height="6" rx="1" stroke="#A3A3A3" stroke-width="2" fill="none"/>
+                </svg>""",
+                "settings": """<svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="20" cy="20" r="19" fill="#262626"/>
+                    <path d="M20 12 L25 16 L25 24 L20 28 L15 24 L15 16 Z" stroke="#A3A3A3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                </svg>"""
+            }
 
-    def update_chevron(self):
-        if self.is_expanded:
-            chevron_svg = """<svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M5 7.5 L10 12.5 L15 7.5" stroke="#9ca3af" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>"""
-        else:
-            chevron_svg = """<svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M7.5 5 L12.5 10 L7.5 15" stroke="#9ca3af" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>"""
-        self.set_svg_icon(self.chevron_label, chevron_svg)
+            # Determine which icon to use based on title
+            icon_key = "document"  # default
+            if hasattr(self, 'title_text'):
+                title_lower = self.title_text.lower()
+                if "quick" in title_lower or "action" in title_lower:
+                    icon_key = "search"
+                elif "template" in title_lower:
+                    icon_key = "grid"
+                elif "setting" in title_lower or "customization" in title_lower:
+                    icon_key = "settings"
+
+            self.set_svg_icon(self.icon_label, svg_map.get(icon_key, svg_map["document"]))
 
     def set_svg_icon(self, label, svg_str):
         from aqt.qt import QByteArray
         svg_bytes = QByteArray(svg_str.encode())
         renderer = QSvgRenderer(svg_bytes)
 
-        # Render at 3x resolution for high quality, then scale down
+        # Render at 5x resolution for ultra high quality, then scale down
         size = label.size()
-        pixmap = QPixmap(size.width() * 3, size.height() * 3)
+        pixmap = QPixmap(size.width() * 5, size.height() * 5)
         try:
             pixmap.fill(Qt.GlobalColor.transparent)
         except:
@@ -249,6 +306,8 @@ class TutorialAccordion(QWidget):
         super().__init__(parent)
         self.is_collapsed = False
         self.accordion_items = []
+        self.current_section_index = 0
+        self.auto_advance_timer = None
 
         # Make this a floating widget
         try:
@@ -257,7 +316,8 @@ class TutorialAccordion(QWidget):
             self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.Tool)
 
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
-        self.setFixedWidth(420)
+        self.setMinimumWidth(420)
+        self.setMaximumWidth(420)
 
         self.setup_ui()
         self.position_bottom_left()
@@ -271,8 +331,8 @@ class TutorialAccordion(QWidget):
         container = QFrame()
         container.setStyleSheet("""
             QFrame {
-                background: #2b2b2b;
-                border: none;
+                background: #171717;
+                border: 1px solid #262626;
                 border-radius: 8px;
             }
         """)
@@ -283,42 +343,131 @@ class TutorialAccordion(QWidget):
         # Header
         header = QWidget()
         header.setFixedHeight(56)  # Lock header height
-        header.setStyleSheet("background: transparent;")
+        header.setStyleSheet("background: transparent; border-bottom: 1px solid #262626;")
         header_layout = QHBoxLayout(header)
-        header_layout.setContentsMargins(24, 16, 16, 16)
-        header_layout.setSpacing(0)
+        header_layout.setContentsMargins(24, 16, 24, 16)
+        header_layout.setSpacing(8)
 
         self.title_label = QLabel("Just one step ahead!")
-        self.title_label.setStyleSheet("color: white; font-size: 18px; font-weight: 500;")
+        self.title_label.setStyleSheet("color: #FFFFFF; font-size: 18px; background: transparent; border: none; outline: none;")
+        self.title_label.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         header_layout.addWidget(self.title_label)
         header_layout.addStretch()
 
-        # Collapse button
-        self.collapse_btn = QPushButton()
-        self.collapse_btn.setFixedSize(24, 24)
-        self.collapse_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
-        self.collapse_btn.setStyleSheet("""
+        # Navigation controls container
+        nav_container = QWidget()
+        nav_container.setStyleSheet("background: transparent;")
+        nav_layout = QHBoxLayout(nav_container)
+        nav_layout.setContentsMargins(0, 0, 0, 0)
+        nav_layout.setSpacing(8)
+
+        # Back button (ChevronLeft)
+        self.back_btn = QPushButton()
+        self.back_btn.setFixedSize(24, 24)
+        self.back_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        self.back_btn.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        self.back_btn.setStyleSheet("""
             QPushButton {
                 background: transparent;
                 border: none;
+                outline: none;
+                text-decoration: none;
                 border-radius: 4px;
+                padding: 4px;
+            }
+            QPushButton:hover:enabled {
+                background: rgba(255, 255, 255, 0.1);
+            }
+            QPushButton:disabled {
+                opacity: 0.3;
+            }
+            QPushButton:focus {
+                outline: none;
+                border: none;
+            }
+        """)
+        back_svg = """<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M10 12 L6 8 L10 4" stroke="#FFFFFF" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>"""
+        self.set_svg_icon(self.back_btn, back_svg, 16)
+        self.back_btn.clicked.connect(self.go_back)
+        nav_layout.addWidget(self.back_btn)
+
+        # Forward button (ChevronRight)
+        self.forward_btn = QPushButton()
+        self.forward_btn.setFixedSize(24, 24)
+        self.forward_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        self.forward_btn.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        self.forward_btn.setStyleSheet("""
+            QPushButton {
+                background: transparent;
+                border: none;
+                outline: none;
+                text-decoration: none;
+                border-radius: 4px;
+                padding: 4px;
+            }
+            QPushButton:hover:enabled {
+                background: rgba(255, 255, 255, 0.1);
+            }
+            QPushButton:disabled {
+                opacity: 0.3;
+            }
+            QPushButton:focus {
+                outline: none;
+                border: none;
+            }
+        """)
+        forward_svg = """<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M6 12 L10 8 L6 4" stroke="#FFFFFF" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>"""
+        self.set_svg_icon(self.forward_btn, forward_svg, 16)
+        self.forward_btn.clicked.connect(self.go_forward)
+        nav_layout.addWidget(self.forward_btn)
+
+        # Vertical divider
+        divider = QFrame()
+        divider.setFixedSize(1, 16)
+        divider.setStyleSheet("background: #404040; border: none;")
+        nav_layout.addWidget(divider)
+
+        # Close/Skip button (X)
+        self.close_btn = QPushButton()
+        self.close_btn.setFixedSize(24, 24)
+        self.close_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        self.close_btn.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        self.close_btn.setStyleSheet("""
+            QPushButton {
+                background: transparent;
+                border: none;
+                outline: none;
+                text-decoration: none;
+                border-radius: 4px;
+                padding: 4px;
             }
             QPushButton:hover {
                 background: rgba(255, 255, 255, 0.1);
             }
+            QPushButton:focus {
+                outline: none;
+                border: none;
+            }
         """)
-        minus_svg = """<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M6 12 L18 12" stroke="white" stroke-width="2" stroke-linecap="round"/>
+        close_svg = """<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 4 L4 12 M4 4 L12 12" stroke="#A3A3A3" stroke-width="1.5" stroke-linecap="round"/>
         </svg>"""
-        self.set_svg_icon(self.collapse_btn, minus_svg, 24)
-        self.collapse_btn.clicked.connect(self.toggle_collapse)
-        header_layout.addWidget(self.collapse_btn)
+        self.set_svg_icon(self.close_btn, close_svg, 16)
+        self.close_btn.clicked.connect(self.skip_tutorial)
+        nav_layout.addWidget(self.close_btn)
+
+        header_layout.addWidget(nav_container)
 
         container_layout.addWidget(header)
 
         # Content
         self.content_widget = QWidget()
         self.content_widget.setStyleSheet("background: transparent;")
+        self.content_widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
         content_layout = QVBoxLayout(self.content_widget)
         content_layout.setContentsMargins(0, 0, 0, 0)
         content_layout.setSpacing(0)
@@ -326,13 +475,14 @@ class TutorialAccordion(QWidget):
         # Progress section
         progress_widget = QWidget()
         progress_widget.setFixedHeight(68)  # Lock progress height
-        progress_widget.setStyleSheet("background: transparent;")
+        progress_widget.setStyleSheet("background: transparent; border-bottom: 1px solid #262626;")
         progress_layout = QHBoxLayout(progress_widget)
         progress_layout.setContentsMargins(24, 20, 24, 20)
         progress_layout.setSpacing(12)
 
         emoji_label = QLabel("👋")
-        emoji_label.setStyleSheet("font-size: 24px;")
+        emoji_label.setStyleSheet("font-size: 24px; background: transparent; border: none; outline: none;")
+        emoji_label.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         progress_layout.addWidget(emoji_label)
 
         progress_bar_container = QWidget()
@@ -350,25 +500,29 @@ class TutorialAccordion(QWidget):
         self.progress_fill.setFixedWidth(0)
 
         progress_bar_layout.addWidget(self.progress_bar)
-        progress_layout.addWidget(progress_bar_container, 1)
+        progress_layout.addWidget(progress_bar_container, 1)  # Stretch to fill
 
-        self.percentage_label = QLabel("0%")
-        self.percentage_label.setStyleSheet("color: #9ca3af; font-size: 14px;")
-        progress_layout.addWidget(self.percentage_label)
+        self.counter_label = QLabel("0/4")
+        self.counter_label.setStyleSheet("color: #A3A3A3; font-size: 14px; background: transparent; border: none; outline: none;")
+        self.counter_label.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        progress_layout.addWidget(self.counter_label)
 
         content_layout.addWidget(progress_widget)
 
-        # Accordion items
-        accordion_container = QWidget()
-        accordion_container.setStyleSheet("background: transparent;")
-        self.accordion_layout = QVBoxLayout(accordion_container)
-        self.accordion_layout.setContentsMargins(0, 0, 0, 0)
-        self.accordion_layout.setSpacing(0)
+        # Current section container (will be populated dynamically)
+        self.section_container = QWidget()
+        self.section_container.setStyleSheet("background: transparent;")
+        self.section_container.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+        self.section_layout = QVBoxLayout(self.section_container)
+        self.section_layout.setContentsMargins(0, 0, 0, 0)
+        self.section_layout.setSpacing(0)
 
-        # Define items
-        items_data = [
+        content_layout.addWidget(self.section_container)
+
+        # Define all sections data
+        self.sections_data = [
             {
-                "icon": '<path d="M2 3 L2 21 L16 21 L16 7 L12 3 Z M12 3 L12 7 L16 7" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>',
+                "icon": '<path d="M4 3 L4 17 L16 17 L16 7 L12 3 Z M12 3 L12 7 L16 7" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>',
                 "title": "Getting Started",
                 "description": "Open and close the OpenEvidence panel",
                 "tasks": [
@@ -377,7 +531,7 @@ class TutorialAccordion(QWidget):
                 ]
             },
             {
-                "icon": '<circle cx="9" cy="9" r="7" stroke="white" stroke-width="1.5" fill="none"/><path d="M14 14 L18 18" stroke="white" stroke-width="1.5" stroke-linecap="round"/>',
+                "icon": '<circle cx="10" cy="10" r="6" stroke="white" stroke-width="1.5" fill="none"/><path d="M14.5 14.5 L17.5 17.5" stroke="white" stroke-width="1.5" stroke-linecap="round"/>',
                 "title": "Quick Actions",
                 "description": "Highlight text and use quick actions on flashcards",
                 "tasks": [
@@ -387,7 +541,7 @@ class TutorialAccordion(QWidget):
                 ]
             },
             {
-                "icon": '<rect x="2" y="2" width="6" height="6" rx="1" stroke="white" stroke-width="1.5" fill="none"/><rect x="11" y="2" width="6" height="6" rx="1" stroke="white" stroke-width="1.5" fill="none"/><rect x="2" y="11" width="6" height="6" rx="1" stroke="white" stroke-width="1.5" fill="none"/>',
+                "icon": '<rect x="3" y="3" width="6" height="6" rx="1" stroke="white" stroke-width="1.5" fill="none"/><rect x="11" y="3" width="6" height="6" rx="1" stroke="white" stroke-width="1.5" fill="none"/><rect x="3" y="11" width="6" height="6" rx="1" stroke="white" stroke-width="1.5" fill="none"/><rect x="11" y="11" width="6" height="6" rx="1" stroke="white" stroke-width="1.5" fill="none"/>',
                 "title": "Templates",
                 "description": "Use keyboard shortcuts to populate search with card content",
                 "tasks": [
@@ -397,7 +551,7 @@ class TutorialAccordion(QWidget):
                 ]
             },
             {
-                "icon": '<path d="M9 2 L15 2 L18 9 L15 16 L9 16 L6 9 Z" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>',
+                "icon": '<path d="M10 3 L15 6.5 L15 13.5 L10 17 L5 13.5 L5 6.5 Z" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>',
                 "title": "Settings & Customization",
                 "description": "Explore and customize templates and quick actions",
                 "tasks": [
@@ -408,36 +562,22 @@ class TutorialAccordion(QWidget):
             }
         ]
 
-        for idx, item_data in enumerate(items_data):
+        # Create all accordion items
+        for item_data in self.sections_data:
             item = AccordionItem(
                 item_data["icon"],
                 item_data["title"],
                 item_data["description"],
                 item_data["tasks"]
             )
-            item.toggled.connect(self.update_progress)
+            item.toggled.connect(self.on_section_task_changed)
             self.accordion_items.append(item)
-            self.accordion_layout.addWidget(item)
-
-            # Connect to handler that closes others first
-            item.header_btn.clicked.disconnect()
-            item.header_btn.clicked.connect(lambda checked=False, it=item: self.on_accordion_clicked(it))
-
-            # Add separator after each item except the last one
-            if idx < len(items_data) - 1:
-                separator = QFrame()
-                separator.setFixedHeight(1)
-                separator.setStyleSheet("background: #999999; border: none;")
-                self.accordion_layout.addWidget(separator)
-
-        content_layout.addWidget(accordion_container)
         container_layout.addWidget(self.content_widget)
         main_layout.addWidget(container)
 
-        # Expand first item
-        if self.accordion_items:
-            self.accordion_items[0].toggle()
-
+        # Show the first section
+        self.show_current_section()
+        self.update_navigation_buttons()
         self.update_progress()
 
     def position_bottom_left(self):
@@ -457,27 +597,127 @@ class TutorialAccordion(QWidget):
 
             self.move(x, y)
 
-    def on_accordion_clicked(self, clicked_item):
-        """Handle accordion item click - close all others, then toggle clicked one"""
-        # Close all other items
-        for item in self.accordion_items:
-            if item != clicked_item:
-                item.collapse()
+    def adjust_size(self):
+        """Adjust widget size to fit content"""
+        # Force layout to recalculate
+        self.updateGeometry()
+        self.adjustSize()
 
-        # Toggle the clicked item
-        clicked_item.toggle()
+        # Reposition to ensure it stays in bottom left
+        self.position_bottom_left()
 
-    def toggle_collapse(self):
-        self.is_collapsed = not self.is_collapsed
-        self.content_widget.setVisible(not self.is_collapsed)
-        # Don't reposition - widget should stay in place
+    def show_current_section(self):
+        """Display only the current section"""
+        # Clear the section container
+        while self.section_layout.count():
+            child = self.section_layout.takeAt(0)
+            if child.widget():
+                child.widget().setParent(None)
+
+        # Add the current section (always visible, no toggle)
+        if 0 <= self.current_section_index < len(self.accordion_items):
+            current_item = self.accordion_items[self.current_section_index]
+            # Make sure content is visible
+            current_item.content_widget.setVisible(True)
+            current_item.is_expanded = True
+            self.section_layout.addWidget(current_item)
+
+            # Resize widget to fit new content
+            QTimer.singleShot(0, self.adjust_size)
+
+    def get_max_accessible_section(self):
+        """Find the furthest section user can navigate to (first incomplete section)"""
+        for idx, item in enumerate(self.accordion_items):
+            if not item.is_all_tasks_completed():
+                return idx
+        # All sections completed
+        return len(self.accordion_items) - 1
+
+    def update_navigation_buttons(self):
+        """Enable/disable navigation buttons based on current state"""
+        max_accessible = self.get_max_accessible_section()
+
+        # Back button: can go back if not at first section
+        can_go_back = self.current_section_index > 0
+        self.back_btn.setEnabled(can_go_back)
+        if can_go_back:
+            self.back_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        else:
+            self.back_btn.setCursor(QCursor(Qt.CursorShape.ForbiddenCursor))
+
+        # Forward button: can go forward up to max accessible section
+        can_go_forward = self.current_section_index < max_accessible
+        self.forward_btn.setEnabled(can_go_forward)
+        if can_go_forward:
+            self.forward_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        else:
+            self.forward_btn.setCursor(QCursor(Qt.CursorShape.ForbiddenCursor))
+
+    def go_back(self):
+        """Navigate to previous section"""
+        if self.current_section_index > 0:
+            self.current_section_index -= 1
+            self.show_current_section()
+            self.update_navigation_buttons()
+            self.update_progress()
+
+    def go_forward(self):
+        """Navigate to next section"""
+        max_accessible = self.get_max_accessible_section()
+        if self.current_section_index < max_accessible:
+            self.current_section_index += 1
+            self.show_current_section()
+            self.update_navigation_buttons()
+            self.update_progress()
+
+    def skip_tutorial(self):
+        """Skip/close the tutorial"""
+        self.close()
+
+    def on_section_task_changed(self):
+        """Handle task completion - auto-advance if section is complete"""
+        current_item = self.accordion_items[self.current_section_index]
+
+        # Update navigation and progress
+        self.update_navigation_buttons()
+        self.update_progress()
+
+        # Auto-advance if current section is complete and not the last section
+        if current_item.is_all_tasks_completed() and self.current_section_index < len(self.accordion_items) - 1:
+            # Cancel any existing timer
+            if self.auto_advance_timer is not None:
+                self.auto_advance_timer.stop()
+
+            # Start new timer for auto-advance (500ms delay)
+            self.auto_advance_timer = QTimer()
+            self.auto_advance_timer.setSingleShot(True)
+            self.auto_advance_timer.timeout.connect(self.auto_advance)
+            self.auto_advance_timer.start(500)
+
+    def auto_advance(self):
+        """Automatically advance to next section"""
+        if self.current_section_index < len(self.accordion_items) - 1:
+            self.current_section_index += 1
+            self.show_current_section()
+            self.update_navigation_buttons()
+            self.update_progress()
 
     def mark_task_complete(self, item_index, task_index):
+        """Mark a specific task as complete"""
         if 0 <= item_index < len(self.accordion_items):
             item = self.accordion_items[item_index]
             if 0 <= task_index < len(item.task_checkboxes):
-                item.task_checkboxes[task_index].setChecked(True)
-                self.update_progress()
+                checkbox = item.task_checkboxes[task_index]
+                if not checkbox.isChecked():
+                    checkbox.setChecked(True)
+                    # Update the task appearance
+                    circle_label = checkbox.property("circle_label")
+                    task_label = checkbox.property("task_label")
+                    task_container = checkbox.property("container")
+                    if circle_label and task_label and task_container:
+                        item.update_task_appearance(circle_label, task_label, task_container, True)
+                    # Trigger update
+                    self.on_section_task_changed()
 
     def handle_event(self, event_name):
         """Handle tutorial events to complete tasks"""
@@ -495,22 +735,25 @@ class TutorialAccordion(QWidget):
             self.mark_task_complete(item_idx, task_idx)
 
     def update_progress(self):
-        total = sum(item.get_total_count() for item in self.accordion_items)
-        completed = sum(item.get_completed_count() for item in self.accordion_items)
+        # Count completed sections (not individual tasks)
+        completed_sections = sum(1 for item in self.accordion_items if item.is_all_tasks_completed())
+        total_sections = len(self.accordion_items)
 
-        if total > 0:
-            percentage = int((completed / total) * 100)
+        # Update counter display
+        self.counter_label.setText(f"{completed_sections}/{total_sections}")
+
+        # Update progress bar fill
+        if total_sections > 0:
+            percentage = (completed_sections / total_sections) * 100
         else:
             percentage = 0
-
-        self.percentage_label.setText(f"{percentage}%")
 
         bar_width = self.progress_bar.width()
         fill_width = int(bar_width * (percentage / 100))
         self.progress_fill.setFixedWidth(fill_width)
 
         # Complete tutorial when all done
-        if total > 0 and completed == total:
+        if completed_sections == total_sections and total_sections > 0:
             QTimer.singleShot(1000, self.complete_tutorial)
 
     def complete_tutorial(self):
@@ -535,8 +778,8 @@ class TutorialAccordion(QWidget):
         svg_bytes = QByteArray(svg_str.encode())
         renderer = QSvgRenderer(svg_bytes)
 
-        # Render at 3x resolution for high quality
-        pixmap = QPixmap(size * 3, size * 3)
+        # Render at 5x resolution for ultra high quality
+        pixmap = QPixmap(size * 5, size * 5)
         try:
             pixmap.fill(Qt.GlobalColor.transparent)
         except:
