@@ -1271,9 +1271,9 @@ class OnboardingWidget(QWidget):
             panel = OpenEvidencePanel()
             dock_widget.setWidget(panel)
 
-            # Show tutorial accordion after a short delay
-            from .tutorial_accordion import show_tutorial_accordion
-            QTimer.singleShot(500, show_tutorial_accordion)
+            # Show tutorial after a short delay
+            from .tutorial import start_tutorial
+            QTimer.singleShot(500, start_tutorial)
 
     def on_star_clicked(self):
         if not self.step_completed:

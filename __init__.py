@@ -35,7 +35,8 @@ def create_dock_widget():
             # If onboarding is done but tutorial isn't, start tutorial when panel opens
             if not tutorial_complete:
                 from aqt.qt import QTimer
-                QTimer.singleShot(1000, lambda: start_tutorial_if_panel_visible())
+                from .tutorial import start_tutorial
+                QTimer.singleShot(1000, start_tutorial)
         else:
             panel = OnboardingWidget()
 
@@ -62,14 +63,6 @@ def create_dock_widget():
         mw.openevidence_dock = dock_widget
 
     return dock_widget
-
-
-def start_tutorial_if_panel_visible():
-    """Start tutorial only if panel is visible"""
-    global dock_widget
-    if dock_widget and dock_widget.isVisible():
-        from .tutorial_accordion import show_tutorial_accordion
-        show_tutorial_accordion()
 
 
 def toggle_panel():
@@ -104,6 +97,13 @@ def toggle_panel():
         except:
             pass
 
+    # Notify tutorial that panel was toggled (fires on both open and close)
+    try:
+        from .tutorial import tutorial_event
+        tutorial_event("panel_toggled")
+    except:
+        pass
+
 
 def on_webview_did_receive_js_message(handled, message, context):
     """Handle pycmd messages from toolbar and highlight bubble"""
@@ -114,6 +114,16 @@ def on_webview_did_receive_js_message(handled, message, context):
     # Handle tutorial event messages
     if message.startswith("tutorial:"):
         event_name = message.replace("tutorial:", "", 1)
+        try:
+            from .tutorial import tutorial_event
+            tutorial_event(event_name)
+        except:
+            pass
+        return (True, None)
+
+    # Handle tutorial events from highlight bubble
+    if message.startswith("openevidence:tutorial_event:"):
+        event_name = message.replace("openevidence:tutorial_event:", "", 1)
         try:
             from .tutorial import tutorial_event
             tutorial_event(event_name)
@@ -151,6 +161,13 @@ def on_webview_did_receive_js_message(handled, message, context):
                 query = unquote(parts[0])
                 context = unquote(parts[1])
                 handle_ask_query(query, context)
+                
+                # Notify tutorial that a question was submitted
+                try:
+                    from .tutorial import tutorial_event
+                    tutorial_event("ask_question_submitted")
+                except:
+                    pass
         except:
             pass
         return (True, None)

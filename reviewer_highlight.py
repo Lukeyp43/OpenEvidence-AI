@@ -645,6 +645,13 @@ HIGHLIGHT_BUBBLE_JS = """
 
         // Position after render so we have accurate dimensions
         setTimeout(() => positionBubble(rect), 0);
+        
+        // Notify tutorial that text was highlighted (Quick Action bar is showing)
+        try {
+            pycmd('openevidence:tutorial_event:text_highlighted');
+        } catch (e) {
+            // Ignore if pycmd not available
+        }
     }
 
     // Hide the bubble
