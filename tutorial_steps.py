@@ -222,8 +222,8 @@ TUTORIAL_STEPS = [
         step_id="templates_intro",
         target_type="none",
         target_ref=None,
-        title="Templates: Send Your Card Instantly",
-        subtext="Use keyboard shortcuts to send your card's content to OpenEvidence — no highlighting needed!\n\nJust click in the sidebar's text box and use the shortcut.",
+        title="Next up: Templates",
+        subtext="Templates let you send your flashcard to OpenEvidence with a simple keyboard shortcut.\n\nNo highlighting needed — just press a key combo!",
         advance_on_event=None,
         action_button="Next"
     ),
@@ -256,7 +256,7 @@ TUTORIAL_STEPS = [
         target_type="none",
         target_ref=None,
         title="Nice! You sent just the question.",
-        subtext="Now let's try the answer shortcut — but first, we need to reveal it.",
+        subtext="Clear the text in the sidebar, then let's try the answer shortcut — but first, we need to reveal it.",
         advance_on_event=None,
         action_button="Next"
     ),
@@ -289,7 +289,7 @@ TUTORIAL_STEPS = [
         target_type="none",
         target_ref=None,
         title="Great! You sent just the answer.",
-        subtext="One more — this one sends both the question AND answer together.",
+        subtext="Clear the text in the sidebar. One more — this one sends both the question AND answer together.",
         advance_on_event=None,
         action_button="Next"
     ),
