@@ -240,11 +240,27 @@ def handle_add_context(selected_text):
             panel.show_web_view()
 
         # Inject the text into the OpenEvidence search box
+        # Priority: 1) Follow-up input (if active conversation), 2) Main search input
         js_code = """
         (function() {
-            var searchInput = document.querySelector('input[placeholder*="medical"], input[placeholder*="question"], textarea, input[type="text"]');
+            var newText = %s;
+            var searchInput = null;
+            
+            // First, check for follow-up input (indicates active conversation)
+            // Look for input with "follow-up" in placeholder
+            var followUpInput = document.querySelector('input[placeholder*="follow-up"], input[placeholder*="Follow-up"], textarea[placeholder*="follow-up"]');
+            
+            if (followUpInput) {
+                // Active conversation - use follow-up input
+                searchInput = followUpInput;
+                console.log('Anki: Found follow-up input, using that');
+            } else {
+                // No active conversation - use main search input
+                searchInput = document.querySelector('input[placeholder*="medical"], input[placeholder*="question"], textarea, input[type="text"]');
+                console.log('Anki: No follow-up input, using main search');
+            }
+            
             if (searchInput) {
-                var newText = %s;
                 var existingText = searchInput.value.trim();
 
                 // Append to existing text if present, otherwise just set new text
@@ -384,12 +400,23 @@ def preload_panel():
     QTimer.singleShot(500, create_dock_widget)
 
 
+def on_answer_shown(card):
+    """Called when answer is shown - store card text and notify tutorial"""
+    store_current_card_text(card)
+    # Notify tutorial that answer was shown
+    try:
+        from .tutorial import tutorial_event
+        tutorial_event("answer_shown")
+    except:
+        pass
+
+
 # Hook registration
 gui_hooks.webview_did_receive_js_message.append(on_webview_did_receive_js_message)
 gui_hooks.top_toolbar_did_init_links.append(add_toolbar_button)
 # Use delayed preloading for better performance
 gui_hooks.main_window_did_init.append(preload_panel)
 gui_hooks.reviewer_did_show_question.append(store_current_card_text)
-gui_hooks.reviewer_did_show_answer.append(store_current_card_text)
+gui_hooks.reviewer_did_show_answer.append(on_answer_shown)
 # Set up highlight bubble hooks for reviewer
 setup_highlight_hooks()

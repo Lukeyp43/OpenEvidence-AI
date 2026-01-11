@@ -39,6 +39,29 @@ from .settings import SettingsHomeView, SettingsListView, SettingsEditorView
 import os
 
 
+# Custom WebEnginePage to intercept console messages for tutorial events
+class TutorialAwarePage(QWebEnginePage):
+    """Custom page that intercepts JavaScript console messages to trigger tutorial events"""
+    
+    def javaScriptConsoleMessage(self, level, message, lineNumber, sourceID):
+        """Override to catch special tutorial messages from JavaScript"""
+        # Check for our special tutorial trigger messages
+        if message == "ANKI_TUTORIAL:shortcut_used":
+            try:
+                from .tutorial import tutorial_event
+                tutorial_event("shortcut_used")
+            except:
+                pass
+        elif message == "ANKI_TUTORIAL:template_used":
+            try:
+                from .tutorial import tutorial_event
+                tutorial_event("template_used")
+            except:
+                pass
+        # Call parent implementation for normal logging
+        super().javaScriptConsoleMessage(level, message, lineNumber, sourceID)
+
+
 # Global persistent profile - must be kept alive for the entire session
 _persistent_profile = None
 
@@ -409,8 +432,8 @@ class OpenEvidencePanel(QWidget):
         # Set up persistent profile for cookies/session storage
         persistent_profile = get_persistent_profile()
         if persistent_profile and QWebEnginePage:
-            # Create a page with the persistent profile
-            page = QWebEnginePage(persistent_profile, self.web)
+            # Create a custom page with the persistent profile that can intercept console messages
+            page = TutorialAwarePage(persistent_profile, self.web)
             self.web.setPage(page)
 
         # Configure settings for faster loading and better preloading
@@ -823,10 +846,8 @@ class OpenEvidencePanel(QWidget):
                             fillInputField(activeElement, window.ankiCardTexts[i]);
                             console.log('Anki: Filled search box with card text using React-compatible events');
 
-                            // Notify tutorial that shortcut was used
-                            if (window.ankiShortcutUsedCallback) {
-                                window.ankiShortcutUsedCallback();
-                            }
+                            // Notify tutorial that shortcut was used (via console message)
+                            console.log('ANKI_TUTORIAL:shortcut_used');
                         } else {
                             console.log('Anki: No card text available for this keybinding');
                         }
@@ -932,16 +953,7 @@ class OpenEvidencePanel(QWidget):
         # Convert to JSON and inject
         if card_texts:
             texts_json = json.dumps(card_texts)
-            # Also inject tutorial event notification
-            js_code = f"""
-            window.ankiCardTexts = {texts_json};
-            // Notify tutorial when shortcut is used
-            window.ankiShortcutUsedCallback = function() {{
-                if (typeof pycmd !== 'undefined') {{
-                    pycmd('tutorial:shortcut_used');
-                }}
-            }};
-            """
+            js_code = f"window.ankiCardTexts = {texts_json};"
             try:
                 self.web.page().runJavaScript(js_code)
             except Exception as e:

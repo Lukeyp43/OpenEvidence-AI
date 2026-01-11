@@ -131,7 +131,7 @@ TUTORIAL_STEPS = [
         target_type="none",
         target_ref=None,
         title="Now let's try \"Add to Chat\".",
-        subtext="This adds your highlighted text directly to the chat input.",
+        subtext="This adds your highlighted text directly to the chat input.\n\nClick Next, then ⌘ Cmd + highlight some text.",
         advance_on_event=None,
         action_button="Next"
     ),
@@ -141,8 +141,8 @@ TUTORIAL_STEPS = [
         step_id="highlight_for_add_to_chat",
         target_type="coordinates",
         target_ref=get_reviewer_card_rect,
-        title="⌘ Cmd + highlight some text again.",
-        subtext=None,
+        title="⌘ Cmd + highlight some text.",
+        subtext="Hold ⌘ Cmd while selecting text to bring up the Quick Action bar.",
         advance_on_event="text_highlighted",
         action_button=None
     ),
@@ -158,72 +158,195 @@ TUTORIAL_STEPS = [
         action_button=None
     ),
 
+    # Step 11: Add to Chat success
+    TutorialStep(
+        step_id="add_to_chat_success",
+        target_type="none",
+        target_ref=None,
+        title="Your highlighted text has been added to the chat!",
+        subtext="You can now type additional context or just press Enter to send.",
+        advance_on_event=None,
+        action_button="Next"
+    ),
+
     # ===== SECTION 4: KEYBOARD SHORTCUTS =====
     
-    # Step 11: Shortcuts intro
+    # Step 12: Shortcuts intro
     TutorialStep(
         step_id="shortcuts_intro",
         target_type="none",
         target_ref=None,
         title="There's an even faster way — keyboard shortcuts!",
-        subtext="You can skip the Quick Action bar entirely and use shortcuts.",
+        subtext="Instead of ⌘ Cmd + highlight and clicking, just highlight any text and use:\n\n⌘F = Add to Chat\n⌘R = Ask Question",
         advance_on_event=None,
         action_button="Show Me"
     ),
 
-    # Step 12: Use shortcut
+    # Step 13: Use shortcut
     TutorialStep(
         step_id="use_shortcut",
         target_type="coordinates",
         target_ref=get_reviewer_card_rect,
-        title="Highlight any text (no ⌘ Cmd needed), then press ⌘ Cmd+Shift+S.",
-        subtext="This instantly sends your card content to the chat using a template.",
+        title="Try it! Highlight any text, then press ⌘F or ⌘R.",
+        subtext="⌘F = Add to Chat    ⌘R = Ask Question\n\nNo ⌘ Cmd + highlight needed — just highlight and use the shortcut.",
         advance_on_event="shortcut_used",
         action_button=None
     ),
 
-    # ===== SECTION 5: TEMPLATES & SETTINGS =====
+    # ===== SECTION 5: TEMPLATES =====
     
-    # Step 13: Templates intro
+    # Step 14: Quick Actions complete
     TutorialStep(
-        step_id="templates_intro",
+        step_id="quick_actions_complete",
         target_type="none",
         target_ref=None,
-        title="That shortcut used a Template!",
-        subtext="Templates let you customize exactly what gets sent to OpenEvidence. Each template has its own keyboard shortcut.",
+        title="Congrats! You've learned Quick Actions. 🎉",
+        subtext="Now let's show you the other major feature: Templates.",
         advance_on_event=None,
         action_button="Next"
     ),
 
-    # Step 14: Open settings
+    # Step 15: Start new chat
+    TutorialStep(
+        step_id="start_new_chat",
+        target_type="none",
+        target_ref=None,
+        title="First, let's start a fresh chat.",
+        subtext="Click the pencil/edit icon in the top right of the sidebar to start a new conversation.",
+        advance_on_event=None,
+        action_button="Done"
+    ),
+
+    # Step 16: Templates intro
+    TutorialStep(
+        step_id="templates_intro",
+        target_type="none",
+        target_ref=None,
+        title="Templates: Send Your Card Instantly",
+        subtext="Use keyboard shortcuts to send your card's content to OpenEvidence — no highlighting needed!\n\nJust click in the sidebar's text box and use the shortcut.",
+        advance_on_event=None,
+        action_button="Next"
+    ),
+
+    # Step 17: Template shortcuts explained
+    TutorialStep(
+        step_id="template_shortcuts",
+        target_type="none",
+        target_ref=None,
+        title="Here are the template shortcuts:",
+        subtext="Ctrl+Shift+Q → Send just the front (question)\nCtrl+Shift+A → Send just the back (answer)\nCtrl+Shift+S → Send front & back (\"Explain this\")\n\n⚠️ Click inside the sidebar's text box first!",
+        advance_on_event=None,
+        action_button="Next"
+    ),
+
+    # Step 18: Try Ctrl+Shift+Q (front only) - FIRST
+    TutorialStep(
+        step_id="try_template_q",
+        target_type="coordinates",
+        target_ref=get_reviewer_card_rect,
+        title="Click in the sidebar's text box, then press Ctrl+Shift+Q.",
+        subtext="This sends only the front (question) of the card.",
+        advance_on_event="shortcut_used",
+        action_button=None
+    ),
+
+    # Step 19: Template Q success
+    TutorialStep(
+        step_id="template_q_success",
+        target_type="none",
+        target_ref=None,
+        title="Nice! You sent just the question.",
+        subtext="Now let's try the answer shortcut — but first, we need to reveal it.",
+        advance_on_event=None,
+        action_button="Next"
+    ),
+
+    # Step 20: Show answer
+    TutorialStep(
+        step_id="show_answer",
+        target_type="none",
+        target_ref=None,
+        title="Please reveal the answer.",
+        subtext="The next shortcut (Ctrl+Shift+A) sends the back of the card, so both the front and back need to be visible.",
+        advance_on_event="answer_shown",
+        action_button=None
+    ),
+
+    # Step 21: Try Ctrl+Shift+A (back only) - SECOND
+    TutorialStep(
+        step_id="try_template_a",
+        target_type="coordinates",
+        target_ref=get_reviewer_card_rect,
+        title="Click in the sidebar, then press Ctrl+Shift+A.",
+        subtext="This sends only the back (answer) of the card.",
+        advance_on_event="shortcut_used",
+        action_button=None
+    ),
+
+    # Step 22: Template A success
+    TutorialStep(
+        step_id="template_a_success",
+        target_type="none",
+        target_ref=None,
+        title="Great! You sent just the answer.",
+        subtext="One more — this one sends both the question AND answer together.",
+        advance_on_event=None,
+        action_button="Next"
+    ),
+
+    # Step 23: Try Ctrl+Shift+S (front & back) - LAST
+    TutorialStep(
+        step_id="try_template_s",
+        target_type="coordinates",
+        target_ref=get_reviewer_card_rect,
+        title="Click in the sidebar, then press Ctrl+Shift+S.",
+        subtext="This sends both the question AND answer to OpenEvidence.",
+        advance_on_event="shortcut_used",
+        action_button=None
+    ),
+
+    # Step 24: Templates complete
+    TutorialStep(
+        step_id="templates_complete",
+        target_type="none",
+        target_ref=None,
+        title="You've learned all the templates! 🎉",
+        subtext="Remember: Click in the sidebar first, then:\n\nCtrl+Shift+Q = Front only\nCtrl+Shift+A = Back only\nCtrl+Shift+S = Front & Back",
+        advance_on_event=None,
+        action_button="Next"
+    ),
+
+    # ===== SECTION 6: SETTINGS =====
+
+    # Step 19: Open settings
     TutorialStep(
         step_id="open_settings",
         target_type="widget",
         target_ref=get_gear_button_rect,
         title="Click the gear icon to open Settings.",
-        subtext=None,
+        subtext="You can customize templates and shortcuts here.",
         advance_on_event="settings_opened",
         action_button=None
     ),
 
-    # Step 15: Settings overview
+    # Step 20: Settings overview
     TutorialStep(
         step_id="settings_overview",
         target_type="none",
         target_ref=None,
         title="Welcome to Settings!",
-        subtext="Here you can customize your Quick Actions and Templates. You can change keyboard shortcuts, edit templates, or create new ones.",
+        subtext="Here you can edit templates, change keyboard shortcuts, or create your own custom templates.",
         advance_on_event=None,
         action_button="Next"
     ),
 
-    # Step 16: Finish
+    # Step 21: Finish
     TutorialStep(
         step_id="finish",
         target_type="none",
         target_ref=None,
         title="You're all set! 🎉",
-        subtext="You now know how to use Quick Actions, shortcuts, and templates. Create an account on openevidence.com to save your chat history.",
+        subtext="You now know Quick Actions and Templates. Create an account on openevidence.com to save your chat history.",
         advance_on_event=None,
         action_button="Finish"
     ),

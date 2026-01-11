@@ -87,6 +87,13 @@ HIGHLIGHT_BUBBLE_JS = """
             bubble.style.display = 'block';
             renderInputState();
             setTimeout(() => positionBubble(rect), 0);
+            
+            // Notify tutorial that shortcut was used
+            try {
+                pycmd('openevidence:tutorial_event:shortcut_used');
+            } catch (err) {
+                // Ignore if pycmd not available
+            }
         } else if (currentState === 'default' || bubble.style.display === 'none') {
             selectedText = '';
             const centerRect = {
@@ -113,6 +120,13 @@ HIGHLIGHT_BUBBLE_JS = """
         if (text && text.length > 0) {
             selectedText = text;
             handleAddToChat();  // Call the actual handler function
+            
+            // Notify tutorial that shortcut was used
+            try {
+                pycmd('openevidence:tutorial_event:shortcut_used');
+            } catch (err) {
+                // Ignore if pycmd not available
+            }
         }
     }
 
