@@ -425,12 +425,18 @@ class SettingsEditorView(KeyRecorderMixin, QWidget):
         if self.index is None:
             # New keybinding
             keybindings.append(self.keybinding)
+            # Track template addition in analytics
+            try:
+                from .analytics import track_template_added
+                track_template_added()
+            except:
+                pass
         else:
             # Edit existing
             keybindings[self.index] = self.keybinding
 
         config["keybindings"] = keybindings
-        mw.addonManager.writeConfig(__name__, config)
+        mw.addonManager.writeConfig(ADDON_NAME, config)
 
         # Refresh JavaScript in panel
         self._refresh_panel_javascript()

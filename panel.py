@@ -55,6 +55,13 @@ class TutorialAwarePage(QWebEnginePage):
                 tutorial_event("shortcut_used")
             except:
                 pass
+        # Track template usage (any template)
+        elif message.startswith("ANKI_ANALYTICS:template_used"):
+            try:
+                from .analytics import track_template_used
+                track_template_used()
+            except:
+                pass
         elif message == "ANKI_TUTORIAL:template_used":
             try:
                 from .tutorial import tutorial_event
@@ -72,6 +79,13 @@ class TutorialAwarePage(QWebEnginePage):
             try:
                 from .analytics import track_auth_button_click
                 track_auth_button_click("login")
+            except:
+                pass
+        # Track when user sends a message in the chat
+        elif message == "ANKI_ANALYTICS:message_sent":
+            try:
+                from .analytics import track_message_sent
+                track_message_sent()
             except:
                 pass
         # Call parent implementation for normal logging
@@ -551,6 +565,7 @@ class OpenEvidencePanel(QWidget):
             self.web.show()
             self.inject_shift_key_listener()
             self.inject_auth_button_listener()
+            self.inject_message_tracking_listener()
             # Check auth status when page is ready
             QTimer.singleShot(2000, self.check_auth_status)  # Wait 2 seconds for tokens to load
         else:
@@ -878,6 +893,78 @@ class OpenEvidencePanel(QWidget):
         except Exception as e:
             print(f"AI Panel: Error injecting auth button listener: {e}")
 
+    def inject_message_tracking_listener(self):
+        """Inject JavaScript to track when user submits a message in the chat"""
+        listener_js = """
+        (function() {
+            // Only inject if not already injected
+            if (window.ankiMessageTrackingInjected) {
+                console.log('Anki: Message tracking already exists, skipping injection');
+                return;
+            }
+            
+            console.log('Anki: Injecting message tracking listener');
+            window.ankiMessageTrackingInjected = true;
+            
+            // Debounce to prevent double-counting (Enter key + form submit can fire close together)
+            var lastMessageTime = 0;
+            function trackMessage() {
+                var now = Date.now();
+                if (now - lastMessageTime > 200) {  // 200ms debounce
+                    lastMessageTime = now;
+                    console.log('ANKI_ANALYTICS:message_sent');
+                }
+            }
+            
+            // Track form submissions
+            document.addEventListener('submit', function(event) {
+                trackMessage();
+            }, true);
+            
+            // Track Enter key in input/textarea (common chat pattern)
+            document.addEventListener('keydown', function(event) {
+                if (event.key === 'Enter' && !event.shiftKey) {
+                    var target = event.target;
+                    var tagName = target.tagName.toLowerCase();
+                    // Only track if in input or textarea that looks like a chat input
+                    if (tagName === 'input' || tagName === 'textarea') {
+                        var placeholder = (target.placeholder || '').toLowerCase();
+                        // Check if it looks like a chat/search input
+                        if (placeholder.includes('question') || placeholder.includes('search') || 
+                            placeholder.includes('ask') || placeholder.includes('message') ||
+                            placeholder.includes('medical')) {
+                            trackMessage();
+                        }
+                    }
+                }
+            }, true);
+            
+            // Track clicks on send/submit buttons
+            document.addEventListener('click', function(event) {
+                var target = event.target;
+                // Walk up to find button
+                while (target && target.tagName !== 'BUTTON' && target !== document.body) {
+                    target = target.parentElement;
+                }
+                if (target && target.tagName === 'BUTTON') {
+                    var buttonText = (target.textContent || '').toLowerCase();
+                    var ariaLabel = (target.getAttribute('aria-label') || '').toLowerCase();
+                    // Check if it's a send/submit button
+                    if (buttonText.includes('send') || buttonText.includes('submit') ||
+                        buttonText.includes('ask') || ariaLabel.includes('send') ||
+                        ariaLabel.includes('submit')) {
+                        trackMessage();
+                    }
+                }
+            }, true);
+        })();
+        """
+        
+        try:
+            self.web.page().runJavaScript(listener_js)
+        except Exception as e:
+            print(f"AI Panel: Error injecting message tracking listener: {e}")
+
     def inject_shift_key_listener(self):
         """Inject JavaScript to listen for custom keybindings"""
         # First, update the keybindings in the global variable
@@ -1034,6 +1121,9 @@ class OpenEvidencePanel(QWidget):
 
                             // Notify tutorial that shortcut was used (via console message)
                             console.log('ANKI_TUTORIAL:shortcut_used');
+                            
+                            // Track template usage with specific shortcut for analytics
+                            console.log('ANKI_ANALYTICS:template_used:' + binding.keys.join('+'));
                         } else {
                             console.log('Anki: No card text available for this keybinding');
                         }
@@ -1185,11 +1275,8 @@ class OnboardingWidget(QWidget):
         self.stacked_widget = QStackedWidget()
         main_layout.addWidget(self.stacked_widget)
 
-        # Create page 1 (Welcome page)
+        # Create the welcome page (only page now - GitHub step removed)
         self.create_page1()
-        
-        # Create page 2 (Star on GitHub page)
-        self.create_page2()
 
         # Start with page 1
         self.stacked_widget.setCurrentIndex(0)
@@ -1221,8 +1308,8 @@ class OnboardingWidget(QWidget):
         title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(title)
 
-        # Gap after headline (24px)
-        layout.addSpacing(24)
+        # Tight gap after title (6px - they're related text)
+        layout.addSpacing(6)
 
         # Creator name
         creator = QLabel("Created by Luke Pettit")
@@ -1234,8 +1321,8 @@ class OnboardingWidget(QWidget):
         creator.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(creator)
 
-        # Gap before button (60px to move it down)
-        layout.addSpacing(60)
+        # Breathing room before button (28px - action separation)
+        layout.addSpacing(28)
 
         # Next button
         next_btn = QPushButton("Next →")
@@ -1254,7 +1341,7 @@ class OnboardingWidget(QWidget):
                 background: #5dade2;
             }
         """)
-        next_btn.clicked.connect(self.go_to_page2)
+        next_btn.clicked.connect(self.complete_onboarding)
         layout.addWidget(next_btn)
 
         outer_layout.addWidget(container, 0, Qt.AlignmentFlag.AlignHCenter)
@@ -1449,6 +1536,10 @@ class OnboardingWidget(QWidget):
             config = mw.addonManager.getConfig(ADDON_NAME) or {}
             config["onboarding_completed"] = True
             mw.addonManager.writeConfig(ADDON_NAME, config)
+            
+            # Track onboarding completion in analytics
+            from .analytics import track_onboarding_completed
+            track_onboarding_completed()
             
             # Verify it was saved
             saved_config = mw.addonManager.getConfig(ADDON_NAME) or {}

@@ -6,7 +6,10 @@ from aqt.qt import *
 from .panel import CustomTitleBar, OpenEvidencePanel, OnboardingWidget
 from .utils import clean_html_text
 from .reviewer_highlight import setup_highlight_hooks
-from .analytics import init_analytics, track_usage, try_send_daily_analytics
+from .analytics import init_analytics, try_send_daily_analytics, track_add_to_chat, track_ask_question, track_anki_open
+
+# Addon name constant
+ADDON_NAME = "the_ai_panel"
 
 # Global references
 dock_widget = None
@@ -134,9 +137,6 @@ def toggle_panel():
 
         dock_widget.show()
         dock_widget.raise_()
-
-        # Track usage analytics
-        track_usage()
 
         # Notify tutorial that panel was opened
         try:
@@ -271,8 +271,8 @@ def handle_add_context(selected_text):
     """Handle 'Add to Chat' action - populate AI Panel search with selected text"""
     global dock_widget
 
-    # Track usage
-    track_usage()
+    # Track Add to Chat usage
+    track_add_to_chat()
 
     # Make sure the panel is created and visible
     if dock_widget is None:
@@ -352,8 +352,8 @@ def handle_ask_query(query, context):
     """Handle 'Ask Question' action - format and auto-submit to AI Panel"""
     global dock_widget
 
-    # Track usage
-    track_usage()
+    # Track Ask Question usage
+    track_ask_question()
 
     # Make sure the panel is created and visible
     if dock_widget is None:
@@ -448,18 +448,41 @@ def add_toolbar_button(links, toolbar):
 
 def preload_panel():
     """Preload panel after a short delay to avoid competing with Anki startup"""
-    # Initialize analytics on first run
-    init_analytics()
+    print(f"{ADDON_NAME}: Starting preload_panel...")
+    
+    # Initialize analytics on first run (returns True if fresh install)
+    is_fresh_install = False
+    try:
+        is_fresh_install = init_analytics()
+    except Exception as e:
+        print(f"{ADDON_NAME}: Error in init_analytics: {e}")
 
     # Ensure platform-appropriate defaults are set
-    ensure_platform_defaults()
+    try:
+        ensure_platform_defaults()
+    except Exception as e:
+        print(f"{ADDON_NAME}: Error in ensure_platform_defaults: {e}")
 
     # Try to send analytics once per day (non-blocking)
-    try_send_daily_analytics()
+    try:
+        try_send_daily_analytics()
+    except Exception as e:
+        print(f"{ADDON_NAME}: Error in try_send_daily_analytics: {e}")
+    
+    # Track that Anki was opened (skip if fresh install, since init_analytics already counted it)
+    if not is_fresh_install:
+        try:
+            track_anki_open()
+            print(f"{ADDON_NAME}: Tracked Anki open")
+        except Exception as e:
+            print(f"{ADDON_NAME}: Error in track_anki_open: {e}")
 
     # Start hourly periodic check for analytics
     # This catches users who leave Anki open for multiple days
-    start_periodic_analytics_check()
+    try:
+        start_periodic_analytics_check()
+    except Exception as e:
+        print(f"{ADDON_NAME}: Error starting periodic check: {e}")
 
     # Wait 500ms after Anki finishes initializing to start preloading
     # This ensures Anki's UI is responsive while OpenEvidence loads in background

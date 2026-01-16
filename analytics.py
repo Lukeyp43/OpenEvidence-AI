@@ -9,6 +9,10 @@ from urllib import request, error
 
 ADDON_NAME = "the_ai_panel"
 
+# Runtime state to track if we've recorded usage for this session
+_session_usage_tracked = False
+_current_session_index = -1  # Index of current session in today's daily_usage list
+
 
 def get_analytics_data() -> Dict:
     """Get current analytics data from config."""
@@ -24,21 +28,25 @@ def save_analytics_data(analytics: Dict):
 
 
 def init_analytics():
-    """Initialize analytics on first run."""
+    """Initialize analytics on first run. Returns True if this was a fresh install."""
+    global _current_session_index
     analytics = get_analytics_data()
 
     if not analytics.get("first_install_date"):
         # Get locale info
         locale_info = get_locale_info()
+        
+        # Get current date/time for first session
+        today = datetime.now().strftime("%Y-%m-%d")
+        current_time = datetime.now().strftime("%H:%M:%S")
 
+        # Core metadata
         analytics["first_install_date"] = datetime.now().isoformat()
         analytics["platform"] = sys.platform  # darwin, win32, linux
         analytics["locale"] = locale_info.get("locale")  # e.g., "en_US"
         analytics["timezone"] = locale_info.get("timezone")  # e.g., "PST"
-        analytics["total_uses"] = 0
-        analytics["daily_usage"] = {}  # Format: {"2026-01-14": count}
-        analytics["last_used_date"] = None
-        analytics["signup_method"] = None  # "sidebar_button" or "organic"
+        
+        # Auth tracking
         analytics["has_logged_in"] = False
         analytics["auth_button_clicked"] = None  # "signup" or "login"
 
@@ -47,49 +55,29 @@ def init_analytics():
         analytics["tutorial_status"] = None  # null/true/"skip"/"skipped_midway"
         analytics["tutorial_current_step"] = None  # e.g., "1/36"
 
-        # Usage tracking
-        analytics["quick_action_usage_count"] = 0
-        analytics["shortcut_usage_count"] = 0
+        # Granular usage tracking (non-redundant)
+        analytics["add_to_chat_count"] = 0
+        analytics["ask_question_count"] = 0
+        analytics["template_usage_count"] = 0
+        analytics["templates_added"] = 0
+        analytics["templates_deleted"] = 0
+        
+        # Session-based daily usage (ONLY field needed for engagement metrics)
+        # Server can calculate: total sessions, sessions with messages, etc.
+        analytics["daily_usage"] = {
+            today: [{"time": current_time, "messages": 0}]
+        }
+        _current_session_index = 0
 
         save_analytics_data(analytics)
+        return True  # Fresh install
+    
+    return False  # Not a fresh install
 
 
-def track_usage():
-    """Track a usage event (called when panel is opened or template used)."""
-    analytics = get_analytics_data()
-    today = datetime.now().strftime("%Y-%m-%d")
-
-    # Increment total uses
-    analytics["total_uses"] = analytics.get("total_uses", 0) + 1
-
-    # Increment daily count
-    daily_usage = analytics.get("daily_usage", {})
-    daily_usage[today] = daily_usage.get(today, 0) + 1
-    analytics["daily_usage"] = daily_usage
-
-    # Update last used date
-    analytics["last_used_date"] = today
-
-    # Clean up old daily data (keep last 90 days for retention analysis)
-    cleanup_old_daily_data(analytics)
-
-    save_analytics_data(analytics)
 
 
-def track_signup_click(method: str = "sidebar_button"):
-    """
-    Track when user clicks signup/login.
 
-    Args:
-        method: "sidebar_button" if they clicked the button, "organic" if navigated on their own
-    """
-    analytics = get_analytics_data()
-
-    if not analytics.get("signup_method"):
-        analytics["signup_method"] = method
-        analytics["signup_date"] = datetime.now().isoformat()
-
-    save_analytics_data(analytics)
 
 
 def track_auth_button_click(button_type: str):
@@ -164,17 +152,90 @@ def track_tutorial_step(current: int, total: int):
     save_analytics_data(analytics)
 
 
-def track_quick_action_used():
-    """Track when user uses a quick action (Meta+F or Meta+R)."""
+def track_add_to_chat():
+    """Track when user uses Add to Chat quick action (Meta+F)."""
     analytics = get_analytics_data()
-    analytics["quick_action_usage_count"] = analytics.get("quick_action_usage_count", 0) + 1
+    analytics["add_to_chat_count"] = analytics.get("add_to_chat_count", 0) + 1
     save_analytics_data(analytics)
 
 
-def track_shortcut_used():
-    """Track when user uses a shortcut (Ctrl+Shift+S/Q/A)."""
+def track_ask_question():
+    """Track when user uses Ask Question quick action (Meta+R)."""
     analytics = get_analytics_data()
-    analytics["shortcut_usage_count"] = analytics.get("shortcut_usage_count", 0) + 1
+    analytics["ask_question_count"] = analytics.get("ask_question_count", 0) + 1
+    save_analytics_data(analytics)
+
+
+def track_template_used():
+    """Track when user uses any template shortcut."""
+    analytics = get_analytics_data()
+    analytics["template_usage_count"] = analytics.get("template_usage_count", 0) + 1
+    save_analytics_data(analytics)
+
+
+def track_template_added():
+    """Track when user adds a new template."""
+    analytics = get_analytics_data()
+    analytics["templates_added"] = analytics.get("templates_added", 0) + 1
+    save_analytics_data(analytics)
+
+
+def track_template_deleted():
+    """Track when user deletes a template."""
+    analytics = get_analytics_data()
+    analytics["templates_deleted"] = analytics.get("templates_deleted", 0) + 1
+    save_analytics_data(analytics)
+
+
+def track_message_sent():
+    """Track when user sends a message in the chat (per-session)."""
+    global _current_session_index
+    analytics = get_analytics_data()
+    today = datetime.now().strftime("%Y-%m-%d")
+    
+    daily_usage = analytics.get("daily_usage", {})
+    todays_sessions = daily_usage.get(today, [])
+    
+    # Handle legacy/invalid formats
+    if isinstance(todays_sessions, dict) or isinstance(todays_sessions, int):
+        todays_sessions = []
+    
+    # If we have a valid session index, update it
+    if _current_session_index >= 0 and _current_session_index < len(todays_sessions):
+        todays_sessions[_current_session_index]["messages"] = todays_sessions[_current_session_index].get("messages", 0) + 1
+        daily_usage[today] = todays_sessions
+        analytics["daily_usage"] = daily_usage
+        save_analytics_data(analytics)
+
+
+def track_anki_open():
+    """Create a new session for this Anki launch."""
+    global _current_session_index
+    analytics = get_analytics_data()
+    
+    # Track new session for today
+    today = datetime.now().strftime("%Y-%m-%d")
+    current_time = datetime.now().strftime("%H:%M:%S")
+    
+    daily_usage = analytics.get("daily_usage", {})
+    
+    # Get or initialize today's session list
+    todays_sessions = daily_usage.get(today, [])
+    # Migration: If it's the old dict format, convert/reset it
+    if isinstance(todays_sessions, dict) or isinstance(todays_sessions, int):
+        todays_sessions = []
+        
+    # Start new session (messages only - granular actions tracked separately)
+    new_session = {"time": current_time, "messages": 0}
+    todays_sessions.append(new_session)
+    
+    daily_usage[today] = todays_sessions
+    analytics["daily_usage"] = daily_usage
+    
+    # Update global index to point to this new session
+    global _current_session_index
+    _current_session_index = len(todays_sessions) - 1
+    
     save_analytics_data(analytics)
 
 
@@ -192,38 +253,6 @@ def cleanup_old_daily_data(analytics: Dict):
         date: count
         for date, count in daily_usage.items()
         if date >= cutoff_str
-    }
-
-
-def get_retention_metrics() -> Dict:
-    """
-    Calculate retention metrics.
-
-    Returns:
-        Dict with retention stats like days_since_install, active_days, etc.
-    """
-    analytics = get_analytics_data()
-
-    if not analytics.get("first_install_date"):
-        return {}
-
-    first_install = datetime.fromisoformat(analytics["first_install_date"])
-    days_since_install = (datetime.now() - first_install).days
-
-    daily_usage = analytics.get("daily_usage", {})
-    active_days = len(daily_usage)
-
-    # Calculate retention rate
-    retention_rate = (active_days / max(days_since_install, 1)) * 100 if days_since_install > 0 else 0
-
-    return {
-        "days_since_install": days_since_install,
-        "active_days": active_days,
-        "total_uses": analytics.get("total_uses", 0),
-        "retention_rate": round(retention_rate, 2),
-        "last_used": analytics.get("last_used_date"),
-        "has_logged_in": analytics.get("has_logged_in", False),
-        "signup_method": analytics.get("signup_method"),
     }
 
 
@@ -279,24 +308,29 @@ def send_analytics_background():
             # Get analytics data
             analytics = get_analytics_data()
 
-            # Note: Server now calculates retention from active_dates array
+            # Note: Server calculates engagement metrics from daily_usage
+            # (total_sessions, sessions_with_messages, etc.)
             payload = {
+                # Core metadata
                 "first_install_date": analytics.get("first_install_date"),
                 "platform": analytics.get("platform"),
                 "locale": analytics.get("locale"),
                 "timezone": analytics.get("timezone"),
-                "total_uses": analytics.get("total_uses", 0),
+                # Auth
                 "has_logged_in": analytics.get("has_logged_in", False),
-                "signup_method": analytics.get("signup_method"),
                 "auth_button_clicked": analytics.get("auth_button_clicked"),
-                "last_used_date": analytics.get("last_used_date"),
                 # Onboarding & Tutorial
                 "onboarding_completed": analytics.get("onboarding_completed", False),
                 "tutorial_status": analytics.get("tutorial_status"),
                 "tutorial_current_step": analytics.get("tutorial_current_step"),
-                # Usage tracking
-                "quick_action_usage_count": analytics.get("quick_action_usage_count", 0),
-                "shortcut_usage_count": analytics.get("shortcut_usage_count", 0),
+                # Granular usage tracking (non-redundant)
+                "add_to_chat_count": analytics.get("add_to_chat_count", 0),
+                "ask_question_count": analytics.get("ask_question_count", 0),
+                "template_usage_count": analytics.get("template_usage_count", 0),
+                "templates_added": analytics.get("templates_added", 0),
+                "templates_deleted": analytics.get("templates_deleted", 0),
+                # Session-based engagement (server calculates totals)
+                "daily_usage": analytics.get("daily_usage", {}),
             }
 
             # Obfuscated API key (decode at runtime)

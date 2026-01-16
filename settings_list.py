@@ -427,6 +427,13 @@ class SettingsListView(QWidget):
         config["keybindings"] = keybindings
         mw.addonManager.writeConfig(__name__, config)
 
+        # Track template deletion in analytics
+        try:
+            from .analytics import track_template_deleted
+            track_template_deleted()
+        except:
+            pass
+
         # Refresh the list
         self.load_keybindings()
 
