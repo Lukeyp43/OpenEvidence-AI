@@ -62,6 +62,11 @@ def init_analytics():
         analytics["templates_added"] = 0
         analytics["templates_deleted"] = 0
         
+        # Referral tracking
+        analytics["has_shown_referral"] = False
+        analytics["referral_modal_status"] = None  # "likely_scanned", "explicit_reject", "ignored_quickly"
+        analytics["referral_modal_seconds_open"] = None
+        
         # Session-based daily usage (ONLY field needed for engagement metrics)
         # Server can calculate: total sessions, sessions with messages, etc.
         analytics["daily_usage"] = {
@@ -329,6 +334,10 @@ def send_analytics_background():
                 "template_usage_count": analytics.get("template_usage_count", 0),
                 "templates_added": analytics.get("templates_added", 0),
                 "templates_deleted": analytics.get("templates_deleted", 0),
+                # Referral tracking
+                "has_shown_referral": analytics.get("has_shown_referral", False),
+                "referral_modal_status": analytics.get("referral_modal_status"),
+                "referral_modal_seconds_open": analytics.get("referral_modal_seconds_open"),
                 # Session-based engagement (server calculates totals)
                 "daily_usage": analytics.get("daily_usage", {}),
             }

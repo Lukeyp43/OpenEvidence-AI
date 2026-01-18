@@ -86,8 +86,17 @@ class TutorialAwarePage(QWebEnginePage):
             try:
                 from .analytics import track_message_sent
                 track_message_sent()
-            except:
-                pass
+                
+                # Check if we should show referral overlay (after tracking message)
+                from .referral import show_referral_overlay_if_eligible
+                # Use QTimer to show overlay after JS processing completes
+                from aqt.qt import QTimer
+                # Get the parent OpenEvidencePanel widget
+                panel = self.parent()
+                if panel:
+                    QTimer.singleShot(500, lambda: show_referral_overlay_if_eligible(panel))
+            except Exception as e:
+                print(f"AI Panel: Error in message tracking: {e}")
         # Call parent implementation for normal logging
         super().javaScriptConsoleMessage(level, message, lineNumber, sourceID)
 
