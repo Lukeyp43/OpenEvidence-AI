@@ -9,6 +9,7 @@ screen space.
 from PyQt6.QtWidgets import QWidget, QLabel, QVBoxLayout, QPushButton, QApplication, QSizePolicy
 from PyQt6.QtCore import Qt, QRect, QPoint, QTimer
 from PyQt6.QtGui import QPainter, QColor, QPen, QBrush, QPainterPath
+from .theme_manager import ThemeManager
 
 
 class CoachMark(QWidget):
@@ -49,6 +50,8 @@ class CoachMark(QWidget):
         self.content_widget = QWidget(self)
         self.content_widget.setStyleSheet("background: transparent;")
         
+        c = ThemeManager.get_palette()
+        
         self.content_layout = QVBoxLayout(self.content_widget)
         self.content_layout.setContentsMargins(20, 20, 20, 16)
         self.content_layout.setSpacing(10)
@@ -59,13 +62,13 @@ class CoachMark(QWidget):
         self.title_label.setMinimumWidth(self.content_width)
         self.title_label.setMaximumWidth(self.content_width)
         self.title_label.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum)
-        self.title_label.setStyleSheet("""
-            QLabel {
-                color: white;
+        self.title_label.setStyleSheet(f"""
+            QLabel {{
+                color: {c['text']};
                 font-size: 15px;
                 font-weight: 500;
                 background: transparent;
-            }
+            }}
         """)
         self.content_layout.addWidget(self.title_label)
 
@@ -75,12 +78,12 @@ class CoachMark(QWidget):
         self.subtext_label.setMinimumWidth(self.content_width)
         self.subtext_label.setMaximumWidth(self.content_width)
         self.subtext_label.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum)
-        self.subtext_label.setStyleSheet("""
-            QLabel {
-                color: #9ca3af;
+        self.subtext_label.setStyleSheet(f"""
+            QLabel {{
+                color: {c['text_secondary']};
                 font-size: 13px;
                 background: transparent;
-            }
+            }}
         """)
         self.subtext_label.hide()
         self.content_layout.addWidget(self.subtext_label)
@@ -88,28 +91,28 @@ class CoachMark(QWidget):
         # Action button (optional)
         self.action_button = QPushButton()
         self.action_button.setFixedHeight(44)
-        self.action_button.setStyleSheet("""
-            QPushButton {
-                background-color: #3b82f6;
+        self.action_button.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {c['accent']};
                 color: white;
                 border: none;
                 border-radius: 6px;
                 padding: 12px 20px;
                 font-size: 14px;
                 font-weight: 500;
-            }
-            QPushButton:hover {
-                background-color: #2563eb;
-            }
-            QPushButton:pressed {
-                background-color: #1d4ed8;
-            }
+            }}
+            QPushButton:hover {{
+                background-color: {c['accent_hover']};
+            }}
+            QPushButton:pressed {{
+                background-color: {c['accent']};
+            }}
         """)
         self.action_button.hide()
         self.content_layout.addWidget(self.action_button)
 
         # Skip link - in its own container for proper alignment
-        self.skip_link = QLabel('<a href="#" style="color: #6b7280; font-size: 12px; text-decoration: none;">Skip Tutorial</a>')
+        self.skip_link = QLabel(f'<a href="#" style="color: {c["text_secondary"]}; font-size: 12px; text-decoration: none;">Skip Tutorial</a>')
         self.skip_link.setOpenExternalLinks(False)
         self.skip_link.setAlignment(Qt.AlignmentFlag.AlignRight)
         self.skip_link.setStyleSheet("QLabel { background: transparent; margin-top: 8px; }")
@@ -367,10 +370,14 @@ class CoachMark(QWidget):
         elif self.arrow_direction == "bottom":
             bubble_h = self.height() - 20
 
+        c = ThemeManager.get_palette()
+        bg_color = QColor(c['background'])
+        border_color = QColor(c['border'])
+
         # Draw main bubble (rounded rectangle)
         bubble_rect = QRect(bubble_x, bubble_y, bubble_w, bubble_h)
-        painter.setBrush(QBrush(QColor("#1e1e1e")))
-        painter.setPen(QPen(QColor("#4b5563"), 1))
+        painter.setBrush(QBrush(bg_color))
+        painter.setPen(QPen(border_color, 1))
         painter.drawRoundedRect(bubble_rect, 8, 8)
 
         # Draw arrow triangle
@@ -406,8 +413,8 @@ class CoachMark(QWidget):
                 arrow_path.closeSubpath()
 
             # Fill arrow with same color as bubble
-            painter.fillPath(arrow_path, QBrush(QColor("#1e1e1e")))
+            painter.fillPath(arrow_path, QBrush(bg_color))
 
             # Draw border on arrow
-            painter.setPen(QPen(QColor("#4b5563"), 1))
+            painter.setPen(QPen(border_color, 1))
             painter.drawPath(arrow_path)

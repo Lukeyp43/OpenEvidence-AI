@@ -6,8 +6,8 @@ import sys
 from aqt import mw
 from aqt.utils import tooltip
 
-# Addon name for config storage (must match folder name, not __name__)
-ADDON_NAME = "the_ai_panel"
+from aqt.utils import tooltip
+from .utils import ADDON_NAME
 
 try:
     from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QScrollArea, QTextEdit
@@ -20,6 +20,7 @@ except ImportError:
 
 from .settings_utils import ElidedLabel
 from .key_recorder import KeyRecorderMixin
+from .theme_manager import ThemeManager
 
 
 class SettingsEditorView(KeyRecorderMixin, QWidget):
@@ -46,20 +47,22 @@ class SettingsEditorView(KeyRecorderMixin, QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
 
+        c = ThemeManager.get_palette()
+        
         # Scrollable content area
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
-        scroll.setStyleSheet("QScrollArea { background: #1e1e1e; border: none; }")
+        scroll.setStyleSheet(ThemeManager.get_scroll_area_style())
 
         content = QWidget()
-        content.setStyleSheet("background: #1e1e1e;")
+        content.setStyleSheet(f"background: {c['background']};")
         content_layout = QVBoxLayout(content)
         content_layout.setContentsMargins(16, 16, 16, 16)
         content_layout.setSpacing(20)
 
         # Section 1: Key Recorder
         key_label = QLabel("Shortcut Key")
-        key_label.setStyleSheet("color: #ffffff; font-size: 14px; font-weight: bold;")
+        key_label.setStyleSheet(f"color: {c['text']}; font-size: 14px; font-weight: bold;")
         content_layout.addWidget(key_label)
 
         self.key_display = QPushButton()
@@ -72,33 +75,33 @@ class SettingsEditorView(KeyRecorderMixin, QWidget):
         # Section 2: Front Side Template
         # Row 1: Header (Label only)
         q_label = QLabel("Front Side Template")
-        q_label.setStyleSheet("color: #ffffff; font-size: 14px; font-weight: bold; margin-top: 12px;")
+        q_label.setStyleSheet(f"color: {c['text']}; font-size: 14px; font-weight: bold; margin-top: 12px;")
         content_layout.addWidget(q_label)
 
         # Row 2: Input
         self.question_template = QTextEdit()
         self.question_template.setPlainText(self.keybinding.get("question_template", ""))
-        self.question_template.setStyleSheet("""
-            QTextEdit {
-                background-color: #2c2c2c;
-                border: 1px solid #374151;
+        self.question_template.setStyleSheet(f"""
+            QTextEdit {{
+                background-color: {c['surface']};
+                border: 1px solid {c['border']};
                 border-radius: 6px;
                 padding: 8px;
-                color: white;
+                color: {c['text']};
                 font-size: 13px;
                 font-family: Menlo, Monaco, 'Courier New', monospace;
-            }
-            QScrollBar:vertical {
+            }}
+            QScrollBar:vertical {{
                 width: 8px;
                 background: transparent;
-            }
-            QScrollBar::handle:vertical {
-                background: #4b5563;
+            }}
+            QScrollBar::handle:vertical {{
+                background: {c['border']};
                 border-radius: 4px;
-            }
-            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+            }}
+            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{
                 height: 0px;
-            }
+            }}
         """)
         self.question_template.setMinimumHeight(100)
         content_layout.addWidget(self.question_template)
@@ -109,27 +112,14 @@ class SettingsEditorView(KeyRecorderMixin, QWidget):
         q_footer_layout.setContentsMargins(0, 4, 0, 0)
 
         q_help = ElidedLabel("Only {front} is available.")
-        q_help.setStyleSheet("color: #6b7280; font-size: 11px;")
+        q_help.setStyleSheet(f"color: {c['text_secondary']}; font-size: 11px;")
         q_footer_layout.addWidget(q_help, 1)  # Stretch factor 1 to absorb flexible space
 
         q_front_chip = QPushButton("+ {front}")
         q_front_chip.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
         q_front_chip.setFixedHeight(24)
         q_front_chip.setMinimumWidth(75)
-        q_front_chip.setStyleSheet("""
-            QPushButton {
-                background: #374151;
-                color: #ffffff;
-                border: none;
-                border-radius: 12px;
-                padding: 4px 12px;
-                font-size: 11px;
-                font-weight: 500;
-            }
-            QPushButton:hover {
-                background: #4b5563;
-            }
-        """)
+        q_front_chip.setStyleSheet(ThemeManager.get_keycap_style())
         q_front_chip.clicked.connect(lambda: self.insert_variable(self.question_template, "{front}"))
         q_footer_layout.addWidget(q_front_chip)
 
@@ -138,33 +128,33 @@ class SettingsEditorView(KeyRecorderMixin, QWidget):
         # Section 3: Back Side Template
         # Row 1: Header (Label only)
         a_label = QLabel("Back Side Template")
-        a_label.setStyleSheet("color: #ffffff; font-size: 14px; font-weight: bold; margin-top: 12px;")
+        a_label.setStyleSheet(f"color: {c['text']}; font-size: 14px; font-weight: bold; margin-top: 12px;")
         content_layout.addWidget(a_label)
 
         # Row 2: Input
         self.answer_template = QTextEdit()
         self.answer_template.setPlainText(self.keybinding.get("answer_template", ""))
-        self.answer_template.setStyleSheet("""
-            QTextEdit {
-                background-color: #2c2c2c;
-                border: 1px solid #374151;
+        self.answer_template.setStyleSheet(f"""
+            QTextEdit {{
+                background-color: {c['surface']};
+                border: 1px solid {c['border']};
                 border-radius: 6px;
                 padding: 8px;
-                color: white;
+                color: {c['text']};
                 font-size: 13px;
                 font-family: Menlo, Monaco, 'Courier New', monospace;
-            }
-            QScrollBar:vertical {
+            }}
+            QScrollBar:vertical {{
                 width: 8px;
                 background: transparent;
-            }
-            QScrollBar::handle:vertical {
-                background: #4b5563;
+            }}
+            QScrollBar::handle:vertical {{
+                background: {c['border']};
                 border-radius: 4px;
-            }
-            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+            }}
+            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{
                 height: 0px;
-            }
+            }}
         """)
         self.answer_template.setMinimumHeight(100)
         content_layout.addWidget(self.answer_template)
@@ -175,27 +165,14 @@ class SettingsEditorView(KeyRecorderMixin, QWidget):
         a_footer_layout.setContentsMargins(0, 4, 0, 0)
 
         a_help = ElidedLabel("Both {front} and {back} are available.")
-        a_help.setStyleSheet("color: #6b7280; font-size: 11px;")
+        a_help.setStyleSheet(f"color: {c['text_secondary']}; font-size: 11px;")
         a_footer_layout.addWidget(a_help, 1)  # Stretch factor 1 to absorb flexible space
 
         a_front_chip = QPushButton("+ {front}")
         a_front_chip.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
         a_front_chip.setFixedHeight(24)
         a_front_chip.setMinimumWidth(75)
-        a_front_chip.setStyleSheet("""
-            QPushButton {
-                background: #374151;
-                color: #ffffff;
-                border: none;
-                border-radius: 12px;
-                padding: 4px 12px;
-                font-size: 11px;
-                font-weight: 500;
-            }
-            QPushButton:hover {
-                background: #4b5563;
-            }
-        """)
+        a_front_chip.setStyleSheet(ThemeManager.get_keycap_style())
         a_front_chip.clicked.connect(lambda: self.insert_variable(self.answer_template, "{front}"))
         a_footer_layout.addWidget(a_front_chip)
 
@@ -203,20 +180,7 @@ class SettingsEditorView(KeyRecorderMixin, QWidget):
         a_back_chip.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
         a_back_chip.setFixedHeight(24)
         a_back_chip.setMinimumWidth(75)
-        a_back_chip.setStyleSheet("""
-            QPushButton {
-                background: #374151;
-                color: #ffffff;
-                border: none;
-                border-radius: 12px;
-                padding: 4px 12px;
-                font-size: 11px;
-                font-weight: 500;
-            }
-            QPushButton:hover {
-                background: #4b5563;
-            }
-        """)
+        a_back_chip.setStyleSheet(ThemeManager.get_keycap_style())
         a_back_chip.clicked.connect(lambda: self.insert_variable(self.answer_template, "{back}"))
         a_footer_layout.addWidget(a_back_chip)
 
@@ -229,7 +193,7 @@ class SettingsEditorView(KeyRecorderMixin, QWidget):
 
         # Bottom section with Save button
         bottom_section = QWidget()
-        bottom_section.setStyleSheet("background: #1e1e1e; border-top: 1px solid rgba(255, 255, 255, 0.06);")
+        bottom_section.setStyleSheet(ThemeManager.get_bottom_section_style())
         bottom_layout = QVBoxLayout(bottom_section)
         bottom_layout.setContentsMargins(16, 12, 16, 12)
 
@@ -257,30 +221,31 @@ class SettingsEditorView(KeyRecorderMixin, QWidget):
 
     def _update_save_button_style(self):
         """Update save button appearance based on enabled state"""
+        c = ThemeManager.get_palette()
         if self.save_btn.isEnabled():
-            self.save_btn.setStyleSheet("""
-                QPushButton {
-                    background: #3b82f6;
+            self.save_btn.setStyleSheet(f"""
+                QPushButton {{
+                    background: {c['accent']};
                     color: #ffffff;
                     border: none;
                     border-radius: 8px;
                     font-size: 14px;
                     font-weight: 600;
-                }
-                QPushButton:hover {
-                    background: #2563eb;
-                }
+                }}
+                QPushButton:hover {{
+                    background: {c['accent_hover']};
+                }}
             """)
         else:
-            self.save_btn.setStyleSheet("""
-                QPushButton {
-                    background: #333333;
-                    color: #666666;
-                    border: 1px solid #444444;
+            self.save_btn.setStyleSheet(f"""
+                QPushButton {{
+                    background: {c['surface']};
+                    color: {c['text_secondary']};
+                    border: 1px solid {c['border']};
                     border-radius: 8px;
                     font-size: 14px;
                     font-weight: 600;
-                }
+                }}
             """)
 
     def insert_variable(self, text_edit, variable):
@@ -311,47 +276,48 @@ class SettingsEditorView(KeyRecorderMixin, QWidget):
         """Update the key display button appearance"""
         from .utils import format_keys_verbose
 
+        c = ThemeManager.get_palette()
         keys = self.keybinding.get("keys", [])
         if self.recording_keys:
             text = "Press any key combination..."
-            style = """
-                QPushButton {
-                    background: #2c2c2c;
-                    color: #3b82f6;
-                    border: 2px solid #3b82f6;
+            style = f"""
+                QPushButton {{
+                    background: {c['surface']};
+                    color: {c['accent']};
+                    border: 2px solid {c['accent']};
                     border-radius: 8px;
                     font-size: 14px;
                     font-weight: 500;
-                }
+                }}
             """
         elif keys:
             # Display keycaps
             text = format_keys_verbose(keys)
-            style = """
-                QPushButton {
-                    background: #2c2c2c;
-                    color: #ffffff;
-                    border: 1px solid #374151;
+            style = f"""
+                QPushButton {{
+                    background: {c['surface']};
+                    color: {c['text']};
+                    border: 1px solid {c['border']};
                     border-radius: 8px;
                     font-size: 14px;
-                }
-                QPushButton:hover {
-                    border-color: #4b5563;
-                }
+                }}
+                QPushButton:hover {{
+                    border-color: {c['text_secondary']};
+                }}
             """
         else:
             text = "Click to set shortcut"
-            style = """
-                QPushButton {
-                    background: #2c2c2c;
-                    color: #9ca3af;
-                    border: 1px dashed #374151;
+            style = f"""
+                QPushButton {{
+                    background: {c['surface']};
+                    color: {c['text_secondary']};
+                    border: 1px dashed {c['border']};
                     border-radius: 8px;
                     font-size: 14px;
-                }
-                QPushButton:hover {
-                    border-color: #4b5563;
-                }
+                }}
+                QPushButton:hover {{
+                    border-color: {c['text_secondary']};
+                }}
             """
 
         self.key_display.setText(text)

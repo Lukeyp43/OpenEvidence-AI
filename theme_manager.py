@@ -1,0 +1,238 @@
+"""
+Theme Manager - Centralized handling of UI colors and styles for Light/Dark mode.
+"""
+
+from aqt import mw
+from aqt.qt import QColor
+
+class ThemeManager:
+    """Manages colors and styles based on Anki's night mode setting."""
+    
+    @staticmethod
+    def is_night_mode():
+        """Check if Anki is in night mode."""
+        if hasattr(mw, "pm"):
+            return mw.pm.night_mode()
+        return False  # Default to light mode if determining fails
+
+    @classmethod
+    def get_palette(cls):
+        """Get the color palette for current mode."""
+        return cls.DARK_PALETTE if cls.is_night_mode() else cls.LIGHT_PALETTE
+
+    # Dark Mode Palette (Current behavior)
+    DARK_PALETTE = {
+        "background": "#1e1e1e",
+        "surface": "#2c2c2c", 
+        "text": "#ffffff",
+        "text_secondary": "#d1d5db", # gray-300
+        "border": "#374151", # gray-700
+        "border_subtle": "rgba(255, 255, 255, 0.06)",
+        "hover": "rgba(255, 255, 255, 0.12)",
+        "accent": "#3b82f6", # blue-500
+        "accent_hover": "#2563eb", # blue-600
+        "danger": "#ef4444", # red-500
+        "danger_hover": "rgba(239, 68, 68, 0.2)",
+        "scroll_bg": "#1e1e1e",
+        "icon_color": "white",
+        "shadow": "rgba(0, 0, 0, 0.3)"
+    }
+
+    # Light Mode Palette (New)
+    LIGHT_PALETTE = {
+        "background": "#ffffff",
+        "surface": "#f3f4f6", # gray-100
+        "text": "#111827", # gray-900
+        "text_secondary": "#6b7280", # gray-500
+        "border": "#e5e7eb", # gray-200
+        "border_subtle": "rgba(0, 0, 0, 0.06)",
+        "hover": "rgba(0, 0, 0, 0.05)",
+        "accent": "#3b82f6", # blue-500 (keep same accent usually)
+        "accent_hover": "#2563eb",
+        "danger": "#ef4444",
+        "danger_hover": "rgba(239, 68, 68, 0.1)",
+        "scroll_bg": "#ffffff",
+        "icon_color": "#374151", # gray-700
+        "shadow": "rgba(0, 0, 0, 0.1)"
+    }
+
+    @classmethod
+    def get_color(cls, key):
+        """Get a specific color by key."""
+        return cls.get_palette().get(key, "#ff00ff") # Magenta default if missing
+
+    @classmethod
+    def get_qcolor(cls, key):
+        """Get a QColor object for a specific key."""
+        return QColor(cls.get_color(key))
+
+    # --- Stylesheet Generators ---
+
+    @classmethod
+    def get_scroll_area_style(cls):
+        c = cls.get_palette()
+        return f"QScrollArea {{ background: {c['scroll_bg']}; border: none; }}"
+
+    @classmethod
+    def get_panel_style(cls):
+        c = cls.get_palette()
+        return f"background: {c['background']};"
+        
+    @classmethod
+    def get_button_style(cls, variant="primary"):
+        c = cls.get_palette()
+        if variant == "primary":
+            # Just a standard button in list
+            return f"""
+                QPushButton {{
+                    background: {c['surface']};
+                    color: {c['text']};
+                    border: 1px solid {c['border']};
+                    border-radius: 8px;
+                    font-size: 14px;
+                    font-weight: 500;
+                }}
+                QPushButton:hover {{
+                    background: {c['border']}; 
+                    border-color: {c['text_secondary']};
+                }}
+            """
+        elif variant == "transparent":
+            return f"""
+                QPushButton {{
+                    background: transparent;
+                    border: none;
+                    border-radius: 4px;
+                }}
+                QPushButton:hover {{
+                    background: {c['hover']};
+                }}
+            """
+        return ""
+
+    @classmethod
+    def get_card_style(cls):
+        c = cls.get_palette()
+        return f"""
+            QWidget {{
+                background: {c['surface']};
+                border: 1px solid {c['border']};
+                border-radius: 8px;
+            }}
+        """
+
+    @classmethod
+    def get_keycap_style(cls):
+        c = cls.get_palette()
+        is_dark = cls.is_night_mode()
+        # For light mode, keycaps should be darker than surface but not too dark
+        bg = "#374151" if is_dark else "#e5e7eb"
+        border = "#4b5563" if is_dark else "#d1d5db"
+        text = "#ffffff" if is_dark else "#374151"
+        
+        return f"""
+            QLabel {{
+                background: {bg};
+                border: 1px solid {border};
+                border-radius: 4px;
+                padding: 4px 8px;
+                color: {text};
+                font-size: 12px;
+                font-weight: 500;
+            }}
+        """
+
+    @classmethod
+    def get_bottom_section_style(cls):
+        c = cls.get_palette()
+        return f"background: {c['background']}; border-top: 1px solid {c['border_subtle']};"
+    
+    @classmethod
+    def get_loading_html(cls):
+        """Get the HTML for the loading spinner with correct colors."""
+        c = cls.get_palette()
+        bg = c['background']
+        dot_color = c['text'] # Use text color for dots so they are visible on white
+        
+        return f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <style>
+                body {{
+                    margin: 0;
+                    padding: 0;
+                    background: {bg};
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    height: 100vh;
+                    overflow: hidden;
+                }}
+                .loader {{
+                    width: 10px;
+                    height: 10px;
+                    border-radius: 50%;
+                    display: block;
+                    position: relative;
+                    color: {dot_color};
+                    left: -100px;
+                    box-sizing: border-box;
+                    animation: shadowRolling 2s linear infinite;
+                }}
+                @keyframes shadowRolling {{
+                    0% {{
+                        box-shadow: 0px 0 rgba(255, 255, 255, 0), 0px 0 rgba(255, 255, 255, 0), 0px 0 rgba(255, 255, 255, 0), 0px 0 rgba(255, 255, 255, 0);
+                    }}
+                    12% {{
+                        box-shadow: 100px 0 {dot_color}, 0px 0 rgba(255, 255, 255, 0), 0px 0 rgba(255, 255, 255, 0), 0px 0 rgba(255, 255, 255, 0);
+                    }}
+                    25% {{
+                        box-shadow: 110px 0 {dot_color}, 100px 0 {dot_color}, 0px 0 rgba(255, 255, 255, 0), 0px 0 rgba(255, 255, 255, 0);
+                    }}
+                    36% {{
+                        box-shadow: 120px 0 {dot_color}, 110px 0 {dot_color}, 100px 0 {dot_color}, 0px 0 rgba(255, 255, 255, 0);
+                    }}
+                    50% {{
+                        box-shadow: 130px 0 {dot_color}, 120px 0 {dot_color}, 110px 0 {dot_color}, 100px 0 {dot_color};
+                    }}
+                    62% {{
+                        box-shadow: 200px 0 rgba(255, 255, 255, 0), 130px 0 {dot_color}, 120px 0 {dot_color}, 110px 0 {dot_color};
+                    }}
+                    75% {{
+                        box-shadow: 200px 0 rgba(255, 255, 255, 0), 200px 0 rgba(255, 255, 255, 0), 130px 0 {dot_color}, 120px 0 {dot_color};
+                    }}
+                    87% {{
+                        box-shadow: 200px 0 rgba(255, 255, 255, 0), 200px 0 rgba(255, 255, 255, 0), 200px 0 rgba(255, 255, 255, 0), 130px 0 {dot_color};
+                    }}
+                    100% {{
+                        box-shadow: 200px 0 rgba(255, 255, 255, 0), 200px 0 rgba(255, 255, 255, 0), 200px 0 rgba(255, 255, 255, 0), 200px 0 rgba(255, 255, 255, 0);
+                    }}
+                }}
+            </style>
+        </head>
+        <body>
+            <span class="loader"></span>
+        </body>
+        </html>
+        """
+
+    @classmethod
+    def get_css_variables(cls):
+        """Get CSS variables block for current theme."""
+        c = cls.get_palette()
+        return f"""
+        <style>
+            :root {{
+                --oa-background: {c['background']};
+                --oa-surface: {c['surface']};
+                --oa-text: {c['text']};
+                --oa-text-secondary: {c['text_secondary']};
+                --oa-border: {c['border']};
+                --oa-accent: {c['accent']};
+                --oa-accent-hover: {c['accent_hover']};
+                --oa-shadow: {c['shadow']};
+                --oa-hover: {c['hover']};
+            }}
+        </style>
+        """

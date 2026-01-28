@@ -4,9 +4,8 @@ Shows a floating action bar when text is highlighted on flashcards
 """
 
 from aqt import mw, gui_hooks
-
-# Addon name for config storage (must match folder name, not __name__)
-ADDON_NAME = "the_ai_panel"
+from .utils import ADDON_NAME
+from .theme_manager import ThemeManager
 
 
 # JavaScript code to inject into the reviewer
@@ -210,16 +209,15 @@ HIGHLIGHT_BUBBLE_JS = """
         div.id = 'anki-highlight-bubble';
         div.style.cssText = `
             position: absolute;
-            background: #1e1e1e;
+            background: var(--oa-background);
             border-radius: 6px;
-            border: 1px solid #4b5563;
+            border: 1px solid var(--oa-border);
             padding: 4px;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2);
             z-index: 9999;
             display: none;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             font-size: 12px;
-            color: #ffffff;
+            color: var(--oa-text);
             line-height: 1;
             min-height: auto;
             overflow: hidden;
@@ -231,12 +229,16 @@ HIGHLIGHT_BUBBLE_JS = """
     // Render default state with two buttons and divider
     function renderDefaultState() {
         currentState = 'default';
+        // Remove shadow for the buttons bar (flat look)
+        bubble.style.boxShadow = 'none';
+        
         bubble.innerHTML = `
             <div style="display: flex; align-items: center; gap: 1px; line-height: 1; margin: 0; padding: 0;">
                 <button id="add-to-chat-btn" style="
                     background: transparent;
                     border: none;
-                    color: #ffffff;
+                    box-shadow: none;
+                    color: var(--oa-text);
                     padding: 2px 8px;
                     cursor: pointer;
                     border-radius: 3px;
@@ -252,13 +254,14 @@ HIGHLIGHT_BUBBLE_JS = """
                     margin: 0;
                 ">
                     <span>Add to Chat</span>
-                    <span style="font-size: 10px; color: #9ca3af; font-weight: 400;">${window.quickActionsConfig?.addToChat?.display || '⌘F'}</span>
+                    <span style="font-size: 10px; color: var(--oa-text-secondary); font-weight: 400;">${window.quickActionsConfig?.addToChat?.display || '⌘F'}</span>
                 </button>
-                <div style="width: 1px; height: 14px; background-color: #4b5563; margin: 0;"></div>
+                <div style="width: 1px; height: 14px; background-color: var(--oa-border); margin: 0;"></div>
                 <button id="ask-question-btn" style="
                     background: transparent;
                     border: none;
-                    color: #ffffff;
+                    box-shadow: none;
+                    color: var(--oa-text);
                     padding: 2px 8px;
                     cursor: pointer;
                     border-radius: 3px;
@@ -274,7 +277,7 @@ HIGHLIGHT_BUBBLE_JS = """
                     margin: 0;
                 ">
                     <span>Ask Question</span>
-                    <span style="font-size: 10px; color: #9ca3af; font-weight: 400;">${window.quickActionsConfig?.askQuestion?.display || '⌘R'}</span>
+                    <span style="font-size: 10px; color: var(--oa-text-secondary); font-weight: 400;">${window.quickActionsConfig?.askQuestion?.display || '⌘R'}</span>
                 </button>
             </div>
         `;
@@ -284,14 +287,14 @@ HIGHLIGHT_BUBBLE_JS = """
         const askQuestionBtn = bubble.querySelector('#ask-question-btn');
 
         addToChatBtn.addEventListener('mouseenter', () => {
-            addToChatBtn.style.backgroundColor = '#374151';
+            addToChatBtn.style.backgroundColor = 'var(--oa-hover)';
         });
         addToChatBtn.addEventListener('mouseleave', () => {
             addToChatBtn.style.backgroundColor = 'transparent';
         });
 
         askQuestionBtn.addEventListener('mouseenter', () => {
-            askQuestionBtn.style.backgroundColor = '#374151';
+            askQuestionBtn.style.backgroundColor = 'var(--oa-hover)';
         });
         askQuestionBtn.addEventListener('mouseleave', () => {
             askQuestionBtn.style.backgroundColor = 'transparent';
@@ -325,6 +328,9 @@ HIGHLIGHT_BUBBLE_JS = """
 
     function renderInputState() {
         currentState = 'input';
+        // Add shadow back for the input bubble so it stands out
+        bubble.style.boxShadow = '0 4px 12px var(--oa-shadow)';
+        
         bubble.innerHTML = `
             <div style="
                 display: flex;
@@ -343,7 +349,7 @@ HIGHLIGHT_BUBBLE_JS = """
                         style="
                             background: transparent;
                             border: none;
-                            color: #ffffff;
+                            color: var(--oa-text);
                             padding: 0;
                             font-size: 13px;
                             font-weight: 500;
@@ -360,9 +366,13 @@ HIGHLIGHT_BUBBLE_JS = """
                         "
                     ></textarea>
                     <button id="close-btn" style="
+                        appearance: none;
+                        -webkit-appearance: none;
                         background: transparent;
                         border: none;
-                        color: #9ca3af;
+                        box-shadow: none;
+                        outline: none;
+                        color: var(--oa-text-secondary);
                         cursor: pointer;
                         font-size: 13px;
                         padding: 0;
@@ -377,6 +387,7 @@ HIGHLIGHT_BUBBLE_JS = """
                         margin: 0;
                         margin-left: auto;
                         margin-right: -1px;
+                        border-radius: 0;
                     ">✕</button>
                 </div>
 
@@ -385,14 +396,14 @@ HIGHLIGHT_BUBBLE_JS = """
                         display: flex;
                         align-items: center;
                         gap: 6px;
-                        background: rgba(255, 255, 255, 0.05);
-                        border: 1px dashed rgba(255, 255, 255, 0.2);
+                        background: var(--oa-hover);
+                        border: 1px dashed var(--oa-border);
                         border-radius: 12px;
                         padding: 2px 8px;
                         height: 20px;
                         box-sizing: border-box;
                         font-size: 10px;
-                        color: #9ca3af;
+                        color: var(--oa-text-secondary);
                         cursor: pointer;
                         transition: all 0.15s ease;
                         max-width: 180px;
@@ -420,7 +431,7 @@ HIGHLIGHT_BUBBLE_JS = """
                         ">✕</button>
                     </div>
                     <button id="submit-btn" style="
-                        background: #3b82f6;
+                        background: var(--oa-accent);
                         border: none;
                         color: #ffffff;
                         padding: 0;
@@ -464,8 +475,8 @@ HIGHLIGHT_BUBBLE_JS = """
 
                 // Style changes with glow effect to show selection
                 contextPill.style.borderStyle = 'solid';
-                contextPill.style.borderColor = 'rgba(59, 130, 246, 0.6)';
-                contextPill.style.color = '#e5e7eb';
+                contextPill.style.borderColor = 'rgba(59, 130, 246, 0.6)'; // Keep accent semi-transparent (hard to do with vars unless we split RGB)
+                contextPill.style.color = 'var(--oa-text)';
                 contextPill.style.background = 'rgba(59, 130, 246, 0.1)';
                 contextPill.style.boxShadow = '0 0 8px rgba(59, 130, 246, 0.4)';
             } else {
@@ -475,9 +486,9 @@ HIGHLIGHT_BUBBLE_JS = """
 
                 // Reset styles
                 contextPill.style.borderStyle = 'dashed';
-                contextPill.style.borderColor = 'rgba(255, 255, 255, 0.2)';
-                contextPill.style.color = '#9ca3af';
-                contextPill.style.background = 'rgba(255, 255, 255, 0.05)';
+                contextPill.style.borderColor = 'var(--oa-border)';
+                contextPill.style.color = 'var(--oa-text-secondary)';
+                contextPill.style.background = 'var(--oa-hover)';
                 contextPill.style.boxShadow = 'none';
             }
         }
@@ -512,18 +523,18 @@ HIGHLIGHT_BUBBLE_JS = """
 
         // Hover effect for submit button
         submitBtn.addEventListener('mouseenter', () => {
-            submitBtn.style.backgroundColor = '#2563eb';
+            submitBtn.style.backgroundColor = 'var(--oa-accent-hover)';
         });
         submitBtn.addEventListener('mouseleave', () => {
-            submitBtn.style.backgroundColor = '#3b82f6';
+            submitBtn.style.backgroundColor = 'var(--oa-accent)';
         });
 
         // Hover effect for close button
         closeBtn.addEventListener('mouseenter', () => {
-            closeBtn.style.color = '#ffffff';
+            closeBtn.style.color = 'var(--oa-text)';
         });
         closeBtn.addEventListener('mouseleave', () => {
-            closeBtn.style.color = '#9ca3af';
+            closeBtn.style.color = 'var(--oa-text-secondary)';
         });
 
         // Close button handler
@@ -818,26 +829,28 @@ def inject_highlight_bubble(html, card, context):
         add_to_chat_display = format_shortcut_display(add_to_chat_keys)
         ask_question_display = format_shortcut_display(ask_question_keys)
 
-        # Inject config as JavaScript variables
+        # Prepend config and append main script
         config_js = f"""
         <script>
-        window.quickActionsConfig = {{
-            addToChat: {{
-                keys: {add_to_chat_keys},
-                display: "{add_to_chat_display}"
-            }},
-            askQuestion: {{
-                keys: {ask_question_keys},
-                display: "{ask_question_display}"
-            }}
+        if (!window.quickActionsConfig) {{
+            window.quickActionsConfig = {{}};
+        }}
+        window.quickActionsConfig.addToChat = {{
+            keys: {add_to_chat_keys},
+            display: "{add_to_chat_display}"
+        }};
+        window.quickActionsConfig.askQuestion = {{
+            keys: {ask_question_keys},
+            display: "{ask_question_display}"
         }};
         </script>
         """
 
-        # Add the config and JavaScript to the card HTML
-        html += config_js
-        html += f"<script>{HIGHLIGHT_BUBBLE_JS}</script>"
-
+        # Get CSS variables from ThemeManager
+        css_vars = ThemeManager.get_css_variables()
+        
+        return html + css_vars + config_js + f"<script>{HIGHLIGHT_BUBBLE_JS}</script>"
+    
     return html
 
 

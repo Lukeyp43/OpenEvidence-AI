@@ -17,9 +17,7 @@ from .tutorial_helpers import (
     get_gear_button_rect,
     get_chat_input_rect_async,
 )
-
-# Addon name for config
-ADDON_NAME = "the_ai_panel"
+from .utils import ADDON_NAME
 
 # Platform detection
 IS_MAC = sys.platform == "darwin"

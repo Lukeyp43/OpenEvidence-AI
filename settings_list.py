@@ -7,7 +7,8 @@ from aqt import mw
 from aqt.utils import tooltip
 
 # Addon name for config storage (must match folder name, not __name__)
-ADDON_NAME = "the_ai_panel"
+from aqt.utils import tooltip
+from .utils import ADDON_NAME
 
 try:
     from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QScrollArea
@@ -21,6 +22,7 @@ except ImportError:
     from PyQt5.QtSvg import QSvgRenderer
 
 from .settings_utils import ElidedLabel
+from .theme_manager import ThemeManager
 
 
 class SettingsListView(QWidget):
@@ -38,13 +40,15 @@ class SettingsListView(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
 
+        c = ThemeManager.get_palette()
+        
         # Scrollable list
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
-        scroll.setStyleSheet("QScrollArea { background: #1e1e1e; border: none; }")
+        scroll.setStyleSheet(ThemeManager.get_scroll_area_style())
 
         self.list_container = QWidget()
-        self.list_container.setStyleSheet("background: #1e1e1e;")
+        self.list_container.setStyleSheet(f"background: {c['background']};")
         self.list_layout = QVBoxLayout(self.list_container)
         self.list_layout.setContentsMargins(16, 16, 16, 80)
         self.list_layout.setSpacing(12)
@@ -56,25 +60,12 @@ class SettingsListView(QWidget):
         add_btn = QPushButton("+ Add Shortcut")
         add_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
         add_btn.setFixedHeight(48)
-        add_btn.setStyleSheet("""
-            QPushButton {
-                background: #2c2c2c;
-                color: #ffffff;
-                border: 1px solid #374151;
-                border-radius: 8px;
-                font-size: 14px;
-                font-weight: 500;
-            }
-            QPushButton:hover {
-                background: #374151;
-                border-color: #4b5563;
-            }
-        """)
+        add_btn.setStyleSheet(ThemeManager.get_button_style("primary"))
         add_btn.clicked.connect(self.add_keybinding)
 
         # Position add button at bottom
         add_btn_container = QWidget()
-        add_btn_container.setStyleSheet("background: #1e1e1e; border-top: 1px solid rgba(255, 255, 255, 0.06);")
+        add_btn_container.setStyleSheet(ThemeManager.get_bottom_section_style())
         add_btn_layout = QVBoxLayout(add_btn_container)
         add_btn_layout.setContentsMargins(16, 12, 16, 12)
         add_btn_layout.addWidget(add_btn)
@@ -135,6 +126,9 @@ class SettingsListView(QWidget):
 
     def create_keybinding_card(self, kb, index):
         """Create a card widget for a keybinding"""
+        c = ThemeManager.get_palette()
+        icon_color = c['icon_color']
+
         # Main card container (not clickable - buttons handle actions)
         card = QWidget()
         card.setFixedHeight(56)
@@ -165,17 +159,7 @@ class SettingsListView(QWidget):
                 display = key
 
             keycap = QLabel(display)
-            keycap.setStyleSheet("""
-                QLabel {
-                    background: #374151;
-                    border: 1px solid #4b5563;
-                    border-radius: 4px;
-                    padding: 4px 8px;
-                    color: #ffffff;
-                    font-size: 12px;
-                    font-weight: 500;
-                }
-            """)
+            keycap.setStyleSheet(ThemeManager.get_keycap_style())
             keycaps_layout.addWidget(keycap)
 
         card_layout.addLayout(keycaps_layout)
@@ -187,8 +171,8 @@ class SettingsListView(QWidget):
             template = kb.get("answer_template", "")
         preview = template.replace("\n", " ")
         preview_label = ElidedLabel(preview)
-        preview_label.setStyleSheet("""
-            color: #9ca3af;
+        preview_label.setStyleSheet(f"""
+            color: {c['text_secondary']};
             font-size: 12px;
             padding-left: 12px;
         """)
@@ -201,11 +185,9 @@ class SettingsListView(QWidget):
         edit_btn.setFixedSize(32, 32)
 
         # Create high-resolution SVG icon for edit button
-        edit_icon_svg = """<?xml version="1.0" encoding="UTF-8"?>
-        <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M38 10L32 4L12 24L10 34L20 32L40 12L38 10Z M32 4L38 10 M16 28L20 32" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-        """
+        edit_icon_svg = f"""<svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M38 10L32 4L12 24L10 34L20 32L40 12L38 10Z M32 4L38 10 M16 28L20 32" stroke="{icon_color}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>"""
 
         # Render SVG at higher resolution for crisp display
         svg_bytes_edit = QByteArray(edit_icon_svg.encode())
@@ -222,16 +204,7 @@ class SettingsListView(QWidget):
         edit_btn.setIcon(QIcon(pixmap_edit))
         edit_btn.setIconSize(QSize(16, 16))
 
-        edit_btn.setStyleSheet("""
-            QPushButton {
-                background: transparent;
-                border: none;
-                border-radius: 4px;
-            }
-            QPushButton:hover {
-                background: rgba(255, 255, 255, 0.1);
-            }
-        """)
+        edit_btn.setStyleSheet(ThemeManager.get_button_style("transparent"))
         edit_btn.clicked.connect(lambda: self.edit_keybinding(index))
         card_layout.addWidget(edit_btn)
 
@@ -243,12 +216,10 @@ class SettingsListView(QWidget):
         delete_btn.setProperty("index", index)
 
         # Create high-resolution SVG icon for delete button
-        delete_icon_svg = """<?xml version="1.0" encoding="UTF-8"?>
-        <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M16 10V6h16v4M8 10h32M12 10v28h24V10" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M20 18v14M28 18v14" stroke="white" stroke-width="3" stroke-linecap="round"/>
-        </svg>
-        """
+        delete_icon_svg = f"""<svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M16 10V6h16v4M8 10h32M12 10v28h24V10" stroke="{icon_color}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M20 18v14M28 18v14" stroke="{icon_color}" stroke-width="3" stroke-linecap="round"/>
+        </svg>"""
 
         # Render SVG at higher resolution for crisp display
         svg_bytes_delete = QByteArray(delete_icon_svg.encode())
@@ -265,27 +236,22 @@ class SettingsListView(QWidget):
         delete_btn.setIcon(QIcon(pixmap_delete))
         delete_btn.setIconSize(QSize(16, 16))
 
-        delete_btn.setStyleSheet("""
-            QPushButton {
+        # Use danger hover for delete button
+        delete_btn.setStyleSheet(f"""
+            QPushButton {{
                 background: transparent;
                 border: none;
                 border-radius: 4px;
-            }
-            QPushButton:hover {
-                background: rgba(239, 68, 68, 0.1);
-            }
+            }}
+            QPushButton:hover {{
+                background: {c['danger_hover']};
+            }}
         """)
         delete_btn.clicked.connect(lambda: self.handle_delete_click(delete_btn, edit_btn, index))
         card_layout.addWidget(delete_btn)
 
         # Card background
-        card.setStyleSheet("""
-            QWidget {
-                background: #2c2c2c;
-                border: 1px solid #374151;
-                border-radius: 8px;
-            }
-        """)
+        card.setStyleSheet(ThemeManager.get_card_style())
 
         return card
 
@@ -300,18 +266,19 @@ class SettingsListView(QWidget):
             button.setProperty("state", "confirm")
             # Expand button to fit text
             button.setFixedSize(70, 32)
-            button.setStyleSheet("""
-                QPushButton {
+            c = ThemeManager.get_palette()
+            button.setStyleSheet(f"""
+                QPushButton {{
                     background: transparent;
-                    color: #dc2626;
+                    color: {c['danger']};
                     border: none;
                     border-radius: 4px;
                     font-size: 11px;
                     font-weight: 600;
-                }
-                QPushButton:hover {
-                    background: rgba(220, 38, 38, 0.1);
-                }
+                }}
+                QPushButton:hover {{
+                    background: {c['danger_hover']};
+                }}
             """)
 
             # Hide edit button to prevent card overflow
@@ -377,12 +344,13 @@ class SettingsListView(QWidget):
                     edit_btn.show()
 
                 # Recreate delete icon
-                delete_icon_svg = """<?xml version="1.0" encoding="UTF-8"?>
-                <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M16 10V6h16v4M8 10h32M12 10v28h24V10" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-                    <path d="M20 18v14M28 18v14" stroke="white" stroke-width="3" stroke-linecap="round"/>
-                </svg>
-                """
+                c = ThemeManager.get_palette()
+                icon_color = c['icon_color']
+                
+                delete_icon_svg = f"""<svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M16 10V6h16v4M8 10h32M12 10v28h24V10" stroke="{icon_color}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M20 18v14M28 18v14" stroke="{icon_color}" stroke-width="3" stroke-linecap="round"/>
+                </svg>"""
 
                 svg_bytes_delete = QByteArray(delete_icon_svg.encode())
                 renderer_delete = QSvgRenderer(svg_bytes_delete)
@@ -400,15 +368,15 @@ class SettingsListView(QWidget):
                 # Restore original button size
                 button.setFixedSize(32, 32)
 
-                button.setStyleSheet("""
-                    QPushButton {
+                button.setStyleSheet(f"""
+                    QPushButton {{
                         background: transparent;
                         border: none;
                         border-radius: 4px;
-                    }
-                    QPushButton:hover {
-                        background: rgba(239, 68, 68, 0.1);
-                    }
+                    }}
+                    QPushButton:hover {{
+                        background: {c['danger_hover']};
+                    }}
                 """)
         except RuntimeError:
             # Button was deleted before timer fired, ignore

@@ -13,9 +13,7 @@ from .tutorial_coach_mark import CoachMark
 from .tutorial_overlay import TutorialOverlay
 from .tutorial_steps import get_tutorial_steps, get_step_target_rect
 from . import analytics
-
-# Addon name for config storage (must match folder name, not __name__)
-ADDON_NAME = "the_ai_panel"
+from .utils import ADDON_NAME
 
 
 class TutorialManager(QObject):

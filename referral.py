@@ -17,7 +17,9 @@ except ImportError:
     from PyQt5.QtGui import QCursor, QPixmap, QPainter, QColor, QBrush, QPalette, QPainterPath, QIcon
     from PyQt5.QtSvg import QSvgRenderer
 
-ADDON_NAME = "the_ai_panel"
+    from PyQt5.QtSvg import QSvgRenderer
+from .utils import ADDON_NAME
+from .theme_manager import ThemeManager
 
 # Referral link (GitHub repo)
 REFERRAL_LINK = "https://ankiweb.net/shared/info/1314683963"
@@ -57,7 +59,7 @@ def should_show_referral() -> bool:
     daily_usage = analytics.get("daily_usage", {})
     days_active = len(daily_usage.keys())
     
-    if days_active < 2:
+    if days_active < config.get("referral_days_threshold", 2):
         return False
     
     # Check messages today
@@ -67,8 +69,9 @@ def should_show_referral() -> bool:
     # Sum all messages across today's sessions
     messages_today = sum(session.get("messages", 0) for session in todays_sessions)
     
-    # Trigger on exactly 2 messages (the moment they send their 2nd)
-    if messages_today != 2:
+    # Trigger on exact message count (configurable)
+    referral_threshold = config.get("referral_threshold", 2)
+    if messages_today < referral_threshold:
         return False
     
     return True
@@ -157,7 +160,7 @@ class ReferralOverlay(QWidget):
             from PyQt5.QtCore import Qt as QtCore, QPropertyAnimation, QRect, QEasingCurve
         
         self.animation = None
-        self._bg_color = QColor("#1e1e1e")
+        self._bg_color = ThemeManager.get_qcolor('background')
         
         # Ensure the widget fills entirely
         self.setAutoFillBackground(True)
@@ -220,15 +223,16 @@ class ReferralOverlay(QWidget):
         self.animation.start()
         
     def setup_ui(self):
+        c = ThemeManager.get_palette()
         # Stylesheet for child widgets
-        self.setStyleSheet("""
-            QWidget {
-                background: #1e1e1e;
-            }
-            QLabel {
-                color: #FFFFFF;
+        self.setStyleSheet(f"""
+            QWidget {{
+                background: {c['background']};
+            }}
+            QLabel {{
+                color: {c['text']};
                 background: transparent;
-            }
+            }}
         """)
         
         # Track animation state
@@ -242,8 +246,8 @@ class ReferralOverlay(QWidget):
         main_layout.setContentsMargins(0, 0, 0, 0)
         main_layout.setSpacing(0)
         
-        # Add top spacing
-        main_layout.addSpacing(80)
+        # Add top spacing (stretch to center vertically)
+        main_layout.addStretch()
         
         # Content container (left-aligned text)
         container = QWidget()
@@ -258,10 +262,10 @@ class ReferralOverlay(QWidget):
         # Intro label (will type then delete)
         self.intro_label = QLabel("")
         self.intro_label.setFixedHeight(30)  # Fixed height prevents resizing/flicker
-        self.intro_label.setStyleSheet("""
+        self.intro_label.setStyleSheet(f"""
             font-size: 16px;
             font-weight: 500;
-            color: #a3a3a3;
+            color: {c['text_secondary']};
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
         """)
         self.intro_label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
@@ -272,10 +276,10 @@ class ReferralOverlay(QWidget):
         
         # Headline (hidden initially, revealed after intro deletes)
         self.headline_label = QLabel("")
-        self.headline_label.setStyleSheet("""
+        self.headline_label.setStyleSheet(f"""
             font-size: 22px;
             font-weight: 800;
-            color: #FFFFFF;
+            color: {c['text']};
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
         """)
         self.headline_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
@@ -287,9 +291,9 @@ class ReferralOverlay(QWidget):
         
         # Body text (hidden initially)
         self.body_label = QLabel("")
-        self.body_label.setStyleSheet("""
+        self.body_label.setStyleSheet(f"""
             font-size: 14px;
-            color: #a3a3a3;
+            color: {c['text_secondary']};
         """)
         self.body_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
         self.body_label.setWordWrap(True)
@@ -300,9 +304,9 @@ class ReferralOverlay(QWidget):
         
         # Instruction text (hidden initially)
         self.instruction_label = QLabel("")
-        self.instruction_label.setStyleSheet("""
+        self.instruction_label.setStyleSheet(f"""
             font-size: 14px;
-            color: #a3a3a3;
+            color: {c['text_secondary']};
         """)
         self.instruction_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
         self.instruction_label.setWordWrap(True)
@@ -317,6 +321,7 @@ class ReferralOverlay(QWidget):
         
         qr_wrapper = QWidget()
         qr_wrapper.setFixedSize(150, 150)
+        # QR Code needs white background to be scannable
         qr_wrapper.setStyleSheet("""
             QWidget {
                 background-color: #FFFFFF;
@@ -346,13 +351,15 @@ class ReferralOverlay(QWidget):
         qr_wrapper_layout.addWidget(self.qr_label)
         
         qr_center_layout = QHBoxLayout(self.qr_container)
-        qr_center_layout.setContentsMargins(0, 0, 0, 0)
+        # Add margins to container so shadow isn't clipped
+        qr_center_layout.setContentsMargins(20, 20, 20, 50)
         qr_center_layout.addStretch()
         qr_center_layout.addWidget(qr_wrapper)
         qr_center_layout.addStretch()
         content_layout.addWidget(self.qr_container)
         
-        content_layout.addSpacing(30)
+        # Reduced external spacing since we have internal margin
+        content_layout.addSpacing(10)
         
         # === BUTTONS (shown with QR, but done button starts locked) ===
         self.btn_container = QWidget()
@@ -367,7 +374,7 @@ class ReferralOverlay(QWidget):
         self.done_btn.setCursor(QCursor(Qt.CursorShape.ForbiddenCursor))
         
         # Create high-def lock icon from SVG
-        lock_svg = '''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#888888">
+        lock_svg = f'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="{c['text_secondary']}">
             <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/>
         </svg>'''
         svg_bytes = QByteArray(lock_svg.encode())
@@ -385,16 +392,16 @@ class ReferralOverlay(QWidget):
         self.done_btn.setIcon(self.lock_icon)
         self.done_btn.setIconSize(QSize(18, 18))
         
-        self.done_btn.setStyleSheet("""
-            QPushButton {
-                background: #333333;
-                color: #888888;
+        self.done_btn.setStyleSheet(f"""
+            QPushButton {{
+                background: {c['surface']};
+                color: {c['text_secondary']};
                 border: none;
                 border-radius: 8px;
                 font-size: 14px;
                 font-weight: 600;
                 padding: 14px 28px;
-            }
+            }}
         """)
         self.done_btn.clicked.connect(self.on_done_clicked)
         
@@ -409,17 +416,17 @@ class ReferralOverlay(QWidget):
         # Skip button
         self.skip_btn = QPushButton("Skip (and accept bad luck)")
         self.skip_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
-        self.skip_btn.setStyleSheet("""
-            QPushButton {
+        self.skip_btn.setStyleSheet(f"""
+            QPushButton {{
                 background: transparent;
-                color: #555555;
+                color: {c['text_secondary']};
                 border: none;
                 font-size: 12px;
                 padding: 8px;
-            }
-            QPushButton:hover {
-                color: #888888;
-            }
+            }}
+            QPushButton:hover {{
+                color: {c['text']};
+            }}
         """)
         self.skip_btn.clicked.connect(self.on_skip_clicked)
         btn_layout.addWidget(self.skip_btn, 0, Qt.AlignmentFlag.AlignHCenter)
@@ -529,19 +536,20 @@ class ReferralOverlay(QWidget):
         self.done_btn.setText("I sent it (Claim Good Luck)")
         self.done_btn.setIcon(QIcon())  # Remove lock icon
         self.done_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
-        self.done_btn.setStyleSheet("""
-            QPushButton {
-                background: #007AFF;
+        c = ThemeManager.get_palette()
+        self.done_btn.setStyleSheet(f"""
+            QPushButton {{
+                background: {c['accent']};
                 color: white;
                 border: none;
                 border-radius: 8px;
                 font-size: 14px;
                 font-weight: 600;
                 padding: 14px 28px;
-            }
-            QPushButton:hover {
-                background: #0056b3;
-            }
+            }}
+            QPushButton:hover {{
+                background: {c['accent_hover']};
+            }}
         """)
     
     def show_buttons(self):

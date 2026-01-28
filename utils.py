@@ -3,6 +3,10 @@ Utility functions for AI Side Panel add-on.
 """
 
 import re
+import os
+
+# Addon name for config storage (dynamically detected from folder name)
+ADDON_NAME = os.path.basename(os.path.dirname(__file__))
 
 
 def clean_html_text(html_text):

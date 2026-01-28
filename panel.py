@@ -3,8 +3,8 @@ import webbrowser
 from aqt import mw
 from aqt.qt import *
 
-# Addon name for config storage (must match folder name, not __name__)
-ADDON_NAME = "the_ai_panel"
+from aqt.qt import *
+from .utils import ADDON_NAME
 
 try:
     from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
@@ -39,6 +39,7 @@ except ImportError:
             QWebEngineProfile = None
 
 from .settings import SettingsHomeView, SettingsListView, SettingsEditorView
+from .theme_manager import ThemeManager
 import os
 
 
@@ -158,6 +159,8 @@ class CustomTitleBar(QWidget):
         self.setup_ui()
 
     def setup_ui(self):
+        c = ThemeManager.get_palette()
+        
         layout = QHBoxLayout(self)
         layout.setContentsMargins(12, 4, 4, 4)
         layout.setSpacing(2)
@@ -169,9 +172,9 @@ class CustomTitleBar(QWidget):
         self.back_button.setVisible(False)  # Hidden by default
 
         # Create high-resolution SVG icon for back button
-        back_icon_svg = """<?xml version="1.0" encoding="UTF-8"?>
+        back_icon_svg = f"""<?xml version="1.0" encoding="UTF-8"?>
         <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M30 12 L18 24 L30 36" stroke="white" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M30 12 L18 24 L30 36" stroke="{c['icon_color']}" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
         """
 
@@ -190,22 +193,22 @@ class CustomTitleBar(QWidget):
         self.back_button.setIcon(QIcon(pixmap_back))
         self.back_button.setIconSize(QSize(14, 14))
 
-        self.back_button.setStyleSheet("""
-            QPushButton {
+        self.back_button.setStyleSheet(f"""
+            QPushButton {{
                 background: transparent;
                 border: none;
                 border-radius: 4px;
-            }
-            QPushButton:hover {
-                background: rgba(255, 255, 255, 0.12);
-            }
+            }}
+            QPushButton:hover {{
+                background: {c['hover']};
+            }}
         """)
         self.back_button.clicked.connect(self.go_back)
         layout.addWidget(self.back_button)
 
         # Title label
         self.title_label = QLabel("AI Side Panel")
-        self.title_label.setStyleSheet("color: rgba(255, 255, 255, 0.9); font-size: 13px; font-weight: 500;")
+        self.title_label.setStyleSheet(f"color: {c['text']}; font-size: 13px; font-weight: 500;")
         layout.addWidget(self.title_label)
 
         # Add stretch to push buttons to the right
@@ -217,8 +220,8 @@ class CustomTitleBar(QWidget):
         self.float_button.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
 
         # Create high-resolution SVG icon for float button
-        float_icon_svg = """<?xml version="1.0" encoding="UTF-8"?>
-        <svg width="48" height="48" viewBox="0 0 24 24" fill="white" xmlns="http://www.w3.org/2000/svg">
+        float_icon_svg = f"""<?xml version="1.0" encoding="UTF-8"?>
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="{c['icon_color']}" xmlns="http://www.w3.org/2000/svg">
             <path d="m22 7c0-.478-.379-1-1-1h-14c-.62 0-1 .519-1 1v14c0 .621.52 1 1 1h14c.478 0 1-.379 1-1zm-14.5.5h13v13h-13zm-5.5 7.5v2c0 .621.52 1 1 1h2v-1.5h-1.5v-1.5zm1.5-4.363v3.363h-1.5v-3.363zm0-4.637v3.637h-1.5v-3.637zm11.5-4v1.5h1.5v1.5h1.5v-2c0-.478-.379-1-1-1zm-10 0h-2c-.62 0-1 .519-1 1v2h1.5v-1.5h1.5zm4.5 1.5h-3.5v-1.5h3.5zm4.5 0h-3.5v-1.5h3.5z" fill-rule="nonzero"/>
         </svg>
         """
@@ -238,15 +241,15 @@ class CustomTitleBar(QWidget):
         self.float_button.setIcon(QIcon(pixmap))
         self.float_button.setIconSize(QSize(14, 14))
 
-        self.float_button.setStyleSheet("""
-            QPushButton {
+        self.float_button.setStyleSheet(f"""
+            QPushButton {{
                 background: transparent;
                 border: none;
                 border-radius: 4px;
-            }
-            QPushButton:hover {
-                background: rgba(255, 255, 255, 0.12);
-            }
+            }}
+            QPushButton:hover {{
+                background: {c['hover']};
+            }}
         """)
         self.float_button.clicked.connect(self.toggle_floating)
         layout.addWidget(self.float_button)
@@ -257,9 +260,9 @@ class CustomTitleBar(QWidget):
         self.settings_button.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
 
         # Create high-resolution minimalistic SVG icon for settings button
-        settings_icon_svg = """<?xml version="1.0" encoding="UTF-8"?>
+        settings_icon_svg = f"""<?xml version="1.0" encoding="UTF-8"?>
         <svg width="48" height="48" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill-rule="evenodd" clip-rule="evenodd">
-            <path d="M12 8.666c-1.838 0-3.333 1.496-3.333 3.334s1.495 3.333 3.333 3.333 3.333-1.495 3.333-3.333-1.495-3.334-3.333-3.334m0 7.667c-2.39 0-4.333-1.943-4.333-4.333s1.943-4.334 4.333-4.334 4.333 1.944 4.333 4.334c0 2.39-1.943 4.333-4.333 4.333m-1.193 6.667h2.386c.379-1.104.668-2.451 2.107-3.05 1.496-.617 2.666.196 3.635.672l1.686-1.688c-.508-1.047-1.266-2.199-.669-3.641.567-1.369 1.739-1.663 3.048-2.099v-2.388c-1.235-.421-2.471-.708-3.047-2.098-.572-1.38.057-2.395.669-3.643l-1.687-1.686c-1.117.547-2.221 1.257-3.642.668-1.374-.571-1.656-1.734-2.1-3.047h-2.386c-.424 1.231-.704 2.468-2.099 3.046-.365.153-.718.226-1.077.226-.843 0-1.539-.392-2.566-.893l-1.687 1.686c.574 1.175 1.251 2.237.669 3.643-.571 1.375-1.734 1.654-3.047 2.098v2.388c1.226.418 2.468.705 3.047 2.098.581 1.403-.075 2.432-.669 3.643l1.687 1.687c1.45-.725 2.355-1.204 3.642-.669 1.378.572 1.655 1.738 2.1 3.047m3.094 1h-3.803c-.681-1.918-.785-2.713-1.773-3.123-1.005-.419-1.731.132-3.466.952l-2.689-2.689c.873-1.837 1.367-2.465.953-3.465-.412-.991-1.192-1.087-3.123-1.773v-3.804c1.906-.678 2.712-.782 3.123-1.773.411-.991-.071-1.613-.953-3.466l2.689-2.688c1.741.828 2.466 1.365 3.465.953.992-.412 1.082-1.185 1.775-3.124h3.802c.682 1.918.788 2.714 1.774 3.123 1.001.416 1.709-.119 3.467-.952l2.687 2.688c-.878 1.847-1.361 2.477-.952 3.465.411.992 1.192 1.087 3.123 1.774v3.805c-1.906.677-2.713.782-3.124 1.773-.403.975.044 1.561.954 3.464l-2.688 2.689c-1.728-.82-2.467-1.37-3.456-.955-.988.41-1.08 1.146-1.785 3.126" fill="white"/>
+            <path d="M12 8.666c-1.838 0-3.333 1.496-3.333 3.334s1.495 3.333 3.333 3.333 3.333-1.495 3.333-3.333-1.495-3.334-3.333-3.334m0 7.667c-2.39 0-4.333-1.943-4.333-4.333s1.943-4.334 4.333-4.334 4.333 1.944 4.333 4.334c0 2.39-1.943 4.333-4.333 4.333m-1.193 6.667h2.386c.379-1.104.668-2.451 2.107-3.05 1.496-.617 2.666.196 3.635.672l1.686-1.688c-.508-1.047-1.266-2.199-.669-3.641.567-1.369 1.739-1.663 3.048-2.099v-2.388c-1.235-.421-2.471-.708-3.047-2.098-.572-1.38.057-2.395.669-3.643l-1.687-1.686c-1.117.547-2.221 1.257-3.642.668-1.374-.571-1.656-1.734-2.1-3.047h-2.386c-.424 1.231-.704 2.468-2.099 3.046-.365.153-.718.226-1.077.226-.843 0-1.539-.392-2.566-.893l-1.687 1.686c.574 1.175 1.251 2.237.669 3.643-.571 1.375-1.734 1.654-3.047 2.098v2.388c1.226.418 2.468.705 3.047 2.098.581 1.403-.075 2.432-.669 3.643l1.687 1.687c1.45-.725 2.355-1.204 3.642-.669 1.378.572 1.655 1.738 2.1 3.047m3.094 1h-3.803c-.681-1.918-.785-2.713-1.773-3.123-1.005-.419-1.731.132-3.466.952l-2.689-2.689c.873-1.837 1.367-2.465.953-3.465-.412-.991-1.192-1.087-3.123-1.773v-3.804c1.906-.678 2.712-.782 3.123-1.773.411-.991-.071-1.613-.953-3.466l2.689-2.688c1.741.828 2.466 1.365 3.465.953.992-.412 1.082-1.185 1.775-3.124h3.802c.682 1.918.788 2.714 1.774 3.123 1.001.416 1.709-.119 3.467-.952l2.687 2.688c-.878 1.847-1.361 2.477-.952 3.465.411.992 1.192 1.087 3.123 1.774v3.805c-1.906.677-2.713.782-3.124 1.773-.403.975.044 1.561.954 3.464l-2.688 2.689c-1.728-.82-2.467-1.37-3.456-.955-.988.41-1.08 1.146-1.785 3.126" fill="{c['icon_color']}"/>
         </svg>
         """
 
@@ -278,15 +281,15 @@ class CustomTitleBar(QWidget):
         self.settings_button.setIcon(QIcon(pixmap_settings))
         self.settings_button.setIconSize(QSize(14, 14))
 
-        self.settings_button.setStyleSheet("""
-            QPushButton {
+        self.settings_button.setStyleSheet(f"""
+            QPushButton {{
                 background: transparent;
                 border: none;
                 border-radius: 4px;
-            }
-            QPushButton:hover {
-                background: rgba(255, 255, 255, 0.12);
-            }
+            }}
+            QPushButton:hover {{
+                background: {c['hover']};
+            }}
         """)
         self.settings_button.clicked.connect(self.toggle_settings)
         layout.addWidget(self.settings_button)
@@ -297,9 +300,9 @@ class CustomTitleBar(QWidget):
         self.close_button.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
 
         # Create high-resolution SVG icon for close button
-        close_icon_svg = """<?xml version="1.0" encoding="UTF-8"?>
+        close_icon_svg = f"""<?xml version="1.0" encoding="UTF-8"?>
         <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M8 8 L40 40 M40 8 L8 40" stroke="white" stroke-width="4" stroke-linecap="round"/>
+            <path d="M8 8 L40 40 M40 8 L8 40" stroke="{c['icon_color']}" stroke-width="4" stroke-linecap="round"/>
         </svg>
         """
 
@@ -318,21 +321,22 @@ class CustomTitleBar(QWidget):
         self.close_button.setIcon(QIcon(pixmap_close))
         self.close_button.setIconSize(QSize(14, 14))
 
-        self.close_button.setStyleSheet("""
-            QPushButton {
+        self.close_button.setStyleSheet(f"""
+            QPushButton {{
                 background: transparent;
                 border: none;
                 border-radius: 4px;
-            }
-            QPushButton:hover {
-                background: rgba(239, 68, 68, 0.2);
-            }
+            }}
+            QPushButton:hover {{
+                background: {c['danger_hover']};
+            }}
         """)
         self.close_button.clicked.connect(self.dock_widget.hide)
         layout.addWidget(self.close_button)
 
-        # Set background color for title bar - modern dark gray
-        self.setStyleSheet("background: #2a2a2a; border-bottom: 1px solid rgba(255, 255, 255, 0.06);")
+        # Set background color for title bar
+        c = ThemeManager.get_palette()
+        self.setStyleSheet(f"background: {c['surface']}; border-bottom: 1px solid {c['border_subtle']};")
 
     def toggle_floating(self):
         self.dock_widget.setFloating(not self.dock_widget.isFloating())
@@ -397,73 +401,15 @@ class OpenEvidencePanel(QWidget):
         web_layout.setContentsMargins(0, 0, 0, 0)
 
         # Create loading overlay first (so it's on top in z-order)
+        # Create loading overlay first (so it's on top in z-order)
         self.loading_overlay = QWebEngineView(self.web_container)
-        self.loading_overlay.setStyleSheet("QWebEngineView { background: #1e1e1e; }")
         
-        # Loading HTML with rolling dots animation
-        loading_html = """
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <style>
-                body {
-                    margin: 0;
-                    padding: 0;
-                    background: #1e1e1e;
-                    display: flex;
-                    justify-content: center;
-                    align-items: center;
-                    height: 100vh;
-                    overflow: hidden;
-                }
-                .loader {
-                    width: 10px;
-                    height: 10px;
-                    border-radius: 50%;
-                    display: block;
-                    position: relative;
-                    color: #FFF;
-                    left: -100px;
-                    box-sizing: border-box;
-                    animation: shadowRolling 2s linear infinite;
-                }
-                @keyframes shadowRolling {
-                    0% {
-                        box-shadow: 0px 0 rgba(255, 255, 255, 0), 0px 0 rgba(255, 255, 255, 0), 0px 0 rgba(255, 255, 255, 0), 0px 0 rgba(255, 255, 255, 0);
-                    }
-                    12% {
-                        box-shadow: 100px 0 white, 0px 0 rgba(255, 255, 255, 0), 0px 0 rgba(255, 255, 255, 0), 0px 0 rgba(255, 255, 255, 0);
-                    }
-                    25% {
-                        box-shadow: 110px 0 white, 100px 0 white, 0px 0 rgba(255, 255, 255, 0), 0px 0 rgba(255, 255, 255, 0);
-                    }
-                    36% {
-                        box-shadow: 120px 0 white, 110px 0 white, 100px 0 white, 0px 0 rgba(255, 255, 255, 0);
-                    }
-                    50% {
-                        box-shadow: 130px 0 white, 120px 0 white, 110px 0 white, 100px 0 white;
-                    }
-                    62% {
-                        box-shadow: 200px 0 rgba(255, 255, 255, 0), 130px 0 white, 120px 0 white, 110px 0 white;
-                    }
-                    75% {
-                        box-shadow: 200px 0 rgba(255, 255, 255, 0), 200px 0 rgba(255, 255, 255, 0), 130px 0 white, 120px 0 white;
-                    }
-                    87% {
-                        box-shadow: 200px 0 rgba(255, 255, 255, 0), 200px 0 rgba(255, 255, 255, 0), 200px 0 rgba(255, 255, 255, 0), 130px 0 white;
-                    }
-                    100% {
-                        box-shadow: 200px 0 rgba(255, 255, 255, 0), 200px 0 rgba(255, 255, 255, 0), 200px 0 rgba(255, 255, 255, 0), 200px 0 rgba(255, 255, 255, 0);
-                    }
-                }
-            </style>
-        </head>
-        <body>
-            <span class="loader"></span>
-        </body>
-        </html>
-        """
-        self.loading_overlay.setHtml(loading_html)
+        # Use ThemeManager for style
+        c = ThemeManager.get_palette()
+        self.loading_overlay.setStyleSheet(f"QWebEngineView {{ background: {c['background']}; }}")
+        
+        # Loading HTML with rolling dots animation (dynamically colored)
+        self.loading_overlay.setHtml(ThemeManager.get_loading_html())
         
         # Create web view for OpenEvidence
         self.web = QWebEngineView(self.web_container)
@@ -486,7 +432,8 @@ class OpenEvidencePanel(QWidget):
             except:
                 pass
 
-        self.web.setStyleSheet("QWebEngineView { background: #1e1e1e; }")
+        c = ThemeManager.get_palette()
+        self.web.setStyleSheet(f"QWebEngineView {{ background: {c['background']}; }}")
         
         # Set explicit size to ensure Qt allocates resources and starts loading immediately
         self.web.setMinimumSize(300, 400)
@@ -1309,6 +1256,8 @@ class OnboardingWidget(QWidget):
 
     def create_page1(self):
         """Create the first welcome page"""
+        c = ThemeManager.get_palette()
+        
         page = QWidget()
         outer_layout = QVBoxLayout(page)
         outer_layout.setContentsMargins(16, 0, 16, 0)
@@ -1324,24 +1273,24 @@ class OnboardingWidget(QWidget):
 
         # Title/Headline
         title = QLabel("AI Side Panel")
-        title.setStyleSheet("""
+        title.setStyleSheet(f"""
             font-size: 32px;
             font-weight: 700;
-            color: #FFFFFF;
+            color: {c['text']};
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             margin: 0px 0px 16px 0px;
         """)
         title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(title)
-
+        
         # Tight gap after title (6px - they're related text)
         layout.addSpacing(6)
 
         # Creator name
         creator = QLabel("Created by Luke Pettit")
-        creator.setStyleSheet("""
+        creator.setStyleSheet(f"""
             font-size: 14px;
-            color: #777777;
+            color: {c['text_secondary']};
             font-weight: 500;
         """)
         creator.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -1353,19 +1302,19 @@ class OnboardingWidget(QWidget):
         # Next button
         next_btn = QPushButton("Next →")
         next_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
-        next_btn.setStyleSheet("""
-            QPushButton {
-                background: #3498db;
+        next_btn.setStyleSheet(f"""
+            QPushButton {{
+                background: {c['accent']};
                 color: #FFFFFF;
                 border: none;
                 border-radius: 8px;
                 font-size: 16px;
                 font-weight: 600;
                 padding: 16px;
-            }
-            QPushButton:hover {
-                background: #5dade2;
-            }
+            }}
+            QPushButton:hover {{
+                background: {c['accent_hover']};
+            }}
         """)
         next_btn.clicked.connect(self.complete_onboarding)
         layout.addWidget(next_btn)
@@ -1376,6 +1325,8 @@ class OnboardingWidget(QWidget):
 
     def create_page2(self):
         """Create the second page (Star on GitHub)"""
+        c = ThemeManager.get_palette()
+        
         page = QWidget()
         outer_layout = QVBoxLayout(page)
         outer_layout.setContentsMargins(16, 0, 16, 0)
@@ -1391,10 +1342,10 @@ class OnboardingWidget(QWidget):
 
         # Headline
         headline = QLabel("Unlock Unlimited Requests")
-        headline.setStyleSheet("""
+        headline.setStyleSheet(f"""
             font-size: 26px;
             font-weight: 700;
-            color: #FFFFFF;
+            color: {c['text']};
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             margin: 0px 0px 8px 0px;
         """)
@@ -1407,9 +1358,9 @@ class OnboardingWidget(QWidget):
         # Body text
         body = QLabel("Give us a free star on GitHub to get unlimited requests on our add-on for free.")
         body.setWordWrap(True)
-        body.setStyleSheet("""
+        body.setStyleSheet(f"""
             font-size: 15px;
-            color: #BBBBBB;
+            color: {c['text_secondary']};
             font-weight: 400;
             line-height: 1.5;
             padding-left: 2px;
@@ -1424,17 +1375,17 @@ class OnboardingWidget(QWidget):
         self.star_btn = QPushButton()
         self.star_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
         self.star_btn.setFixedHeight(54)
-        self.star_btn.setStyleSheet("""
-            QPushButton {
-                background: #2b2b2b;
-                border: 1px solid #444444;
+        self.star_btn.setStyleSheet(f"""
+            QPushButton {{
+                background: {c['surface']};
+                border: 1px solid {c['border']};
                 border-radius: 8px;
                 text-align: left;
-            }
-            QPushButton:hover {
-                background: #3a3a3a;
-                border-color: #666666;
-            }
+            }}
+            QPushButton:hover {{
+                background: {c['hover']};
+                border-color: {c['border_hover']};
+            }}
         """)
 
         # Layout for the button content
@@ -1449,15 +1400,15 @@ class OnboardingWidget(QWidget):
         self.checkbox_label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
 
         # SVG for empty checkbox
-        empty_checkbox_svg = """<svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <rect x="2" y="2" width="20" height="20" rx="5" stroke="#FFFFFF" stroke-width="2"/>
+        empty_checkbox_svg = f"""<svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="2" y="2" width="20" height="20" rx="5" stroke="{c['text']}" stroke-width="2"/>
         </svg>"""
         self.set_icon_from_svg(self.checkbox_label, empty_checkbox_svg)
         btn_layout.addWidget(self.checkbox_label)
 
         # 2. Text
         self.star_text = QLabel("Star on GitHub")
-        self.star_text.setStyleSheet("color: #FFFFFF; font-size: 15px; font-weight: 500; border: none; background: transparent;")
+        self.star_text.setStyleSheet(f"color: {c['text']}; font-size: 15px; font-weight: 500; border: none; background: transparent;")
         self.star_text.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
         btn_layout.addWidget(self.star_text)
 
@@ -1471,7 +1422,7 @@ class OnboardingWidget(QWidget):
         self.arrow_label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
 
         # SVG for external link arrow
-        arrow_svg = """<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        arrow_svg = f"""<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="{c['text_secondary']}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <line x1="7" y1="17" x2="17" y2="7"></line>
             <polyline points="7 7 17 7 17 17"></polyline>
         </svg>"""
@@ -1494,16 +1445,16 @@ class OnboardingWidget(QWidget):
         self.continue_btn = QPushButton("Next →")
         self.continue_btn.setCursor(QCursor(Qt.CursorShape.ForbiddenCursor))
         self.continue_btn.setEnabled(False)
-        self.continue_btn.setStyleSheet("""
-            QPushButton {
-                background: #333333;
-                color: #666666;
-                border: 1px solid #444444;
+        self.continue_btn.setStyleSheet(f"""
+            QPushButton {{
+                background: {c['surface']};
+                color: {c['text_disabled']};
+                border: 1px solid {c['border']};
                 border-radius: 8px;
                 font-size: 16px;
                 font-weight: 600;
                 padding: 16px;
-            }
+            }}
         """)
         self.continue_btn.clicked.connect(self.on_continue_clicked)
         bottom_layout.addWidget(self.continue_btn)
@@ -1516,16 +1467,16 @@ class OnboardingWidget(QWidget):
         
         self.skip_link = QLabel("Continue with limited access")
         self.skip_link.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
-        self.skip_link.setStyleSheet("""
-            QLabel {
-                color: #555555;
+        self.skip_link.setStyleSheet(f"""
+            QLabel {{
+                color: {c['text_secondary']};
                 font-size: 10px;
                 background: transparent;
                 border: none;
-            }
-            QLabel:hover {
-                color: #777777;
-            }
+            }}
+            QLabel:hover {{
+                color: {c['text']};
+            }}
         """)
         
         # Make it clickable
@@ -1601,28 +1552,30 @@ class OnboardingWidget(QWidget):
             QTimer.singleShot(4000, self.finalize_onboarding_step)
 
     def finalize_onboarding_step(self):
+        c = ThemeManager.get_palette()
+        
         if not self.step_completed:
             self.step_completed = True
 
-            # Update Star Button to checked state (Dark Gray background, Checkbox turns blue with checkmark)
+            # Update Star Button to checked state
             # Re-enable button but cursor changes
             self.star_btn.setEnabled(True)
             self.star_btn.setCursor(QCursor(Qt.CursorShape.ArrowCursor))
             # Remove hover effect by setting same background
-            self.star_btn.setStyleSheet("""
-                QPushButton {
-                    background: #2b2b2b;
-                    border: 1px solid #444444;
+            self.star_btn.setStyleSheet(f"""
+                QPushButton {{
+                    background: {c['surface']};
+                    border: 1px solid {c['accent']};
                     border-radius: 8px;
                     text-align: left;
-                }
+                }}
             """)
 
             # Update icons/text for checked state
 
             # 1. Checkbox becomes filled blue square with checkmark
-            filled_check_svg = """<svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <rect x="2" y="2" width="20" height="20" rx="5" fill="#3498db"/>
+            filled_check_svg = f"""<svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect x="2" y="2" width="20" height="20" rx="5" fill="{c['accent']}"/>
                 <polyline points="16 9 10 15 7 12" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>"""
             self.set_icon_from_svg(self.checkbox_label, filled_check_svg)
@@ -1630,19 +1583,19 @@ class OnboardingWidget(QWidget):
             # Update Continue Button to UNLOCKED state (Bright Blue)
             self.continue_btn.setEnabled(True)
             self.continue_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
-            self.continue_btn.setStyleSheet("""
-                QPushButton {
-                    background: #3498db;
+            self.continue_btn.setStyleSheet(f"""
+                QPushButton {{
+                    background: {c['accent']};
                     color: #FFFFFF;
                     border: none;
                     border-radius: 8px;
                     font-size: 16px;
                     font-weight: 600;
                     padding: 16px;
-                }
-                QPushButton:hover {
-                    background: #5dade2;
-                }
+                }}
+                QPushButton:hover {{
+                    background: {c['accent_hover']};
+                }}
             """)
 
     def on_continue_clicked(self):

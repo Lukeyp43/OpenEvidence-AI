@@ -7,7 +7,9 @@ from aqt import mw
 from aqt.utils import tooltip
 
 # Addon name for config storage (must match folder name, not __name__)
-ADDON_NAME = "the_ai_panel"
+from aqt.utils import tooltip
+from .utils import ADDON_NAME
+from .theme_manager import ThemeManager
 
 try:
     from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QScrollArea
@@ -46,21 +48,23 @@ class QuickActionsSettingsView(KeyRecorderMixin, QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
 
+        c = ThemeManager.get_palette()
+        
         # Scrollable content area
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
-        scroll.setStyleSheet("QScrollArea { background: #1e1e1e; border: none; }")
+        scroll.setStyleSheet(ThemeManager.get_scroll_area_style())
 
         content = QWidget()
-        content.setStyleSheet("background: #1e1e1e;")
+        content.setStyleSheet(f"background: {c['background']};")
         content_layout = QVBoxLayout(content)
         content_layout.setContentsMargins(16, 16, 16, 16)
         content_layout.setSpacing(24)
 
         # Header
         header = QLabel("Quick Actions")
-        header.setStyleSheet("""
-            color: #ffffff;
+        header.setStyleSheet(f"""
+            color: {c['text']};
             font-size: 20px;
             font-weight: 700;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -69,8 +73,8 @@ class QuickActionsSettingsView(KeyRecorderMixin, QWidget):
 
         # Description
         desc = QLabel("Configure keyboard shortcuts for text highlighting actions")
-        desc.setStyleSheet("""
-            color: #9ca3af;
+        desc.setStyleSheet(f"""
+            color: {c['text_secondary']};
             font-size: 13px;
             margin-bottom: 8px;
         """)
@@ -79,7 +83,7 @@ class QuickActionsSettingsView(KeyRecorderMixin, QWidget):
 
         # Add to Chat shortcut
         add_to_chat_label = QLabel("Add to Chat")
-        add_to_chat_label.setStyleSheet("color: #ffffff; font-size: 14px; font-weight: bold; margin-top: 12px;")
+        add_to_chat_label.setStyleSheet(f"color: {c['text']}; font-size: 14px; font-weight: bold; margin-top: 12px;")
         content_layout.addWidget(add_to_chat_label)
 
         self.add_to_chat_display = QPushButton()
@@ -90,12 +94,12 @@ class QuickActionsSettingsView(KeyRecorderMixin, QWidget):
         content_layout.addWidget(self.add_to_chat_display)
 
         add_to_chat_desc = QLabel("Directly add highlighted text to AI Side Panel chat")
-        add_to_chat_desc.setStyleSheet("color: #6b7280; font-size: 11px; margin-bottom: 8px;")
+        add_to_chat_desc.setStyleSheet(f"color: {c['text_secondary']}; font-size: 11px; margin-bottom: 8px;")
         content_layout.addWidget(add_to_chat_desc)
 
         # Ask Question shortcut
         ask_question_label = QLabel("Ask Question")
-        ask_question_label.setStyleSheet("color: #ffffff; font-size: 14px; font-weight: bold; margin-top: 12px;")
+        ask_question_label.setStyleSheet(f"color: {c['text']}; font-size: 14px; font-weight: bold; margin-top: 12px;")
         content_layout.addWidget(ask_question_label)
 
         self.ask_question_display = QPushButton()
@@ -106,7 +110,7 @@ class QuickActionsSettingsView(KeyRecorderMixin, QWidget):
         content_layout.addWidget(self.ask_question_display)
 
         ask_question_desc = QLabel("Open question input with highlighted text as context")
-        ask_question_desc.setStyleSheet("color: #6b7280; font-size: 11px; margin-bottom: 8px;")
+        ask_question_desc.setStyleSheet(f"color: {c['text_secondary']}; font-size: 11px; margin-bottom: 8px;")
         content_layout.addWidget(ask_question_desc)
 
         content_layout.addStretch()
@@ -122,7 +126,7 @@ class QuickActionsSettingsView(KeyRecorderMixin, QWidget):
 
         # Bottom section with Save button
         bottom_section = QWidget()
-        bottom_section.setStyleSheet("background: #1e1e1e; border-top: 1px solid rgba(255, 255, 255, 0.06);")
+        bottom_section.setStyleSheet(ThemeManager.get_bottom_section_style())
         bottom_layout = QVBoxLayout(bottom_section)
         bottom_layout.setContentsMargins(16, 12, 16, 12)
 
@@ -141,6 +145,8 @@ class QuickActionsSettingsView(KeyRecorderMixin, QWidget):
         """Update a shortcut display button with current keys"""
         from .utils import format_keys_verbose
 
+        c = ThemeManager.get_palette()
+        
         if self.recording_target:
             # During recording - no hover state to avoid bright blue
             if keys:
@@ -149,15 +155,15 @@ class QuickActionsSettingsView(KeyRecorderMixin, QWidget):
             else:
                 button.setText("Press any key combination...")
 
-            button.setStyleSheet("""
-                QPushButton {
-                    background: #2c2c2c;
-                    color: #3b82f6;
-                    border: 2px solid #3b82f6;
+            button.setStyleSheet(f"""
+                QPushButton {{
+                    background: {c['surface']};
+                    color: {c['accent']};
+                    border: 2px solid {c['accent']};
                     border-radius: 8px;
                     font-size: 14px;
                     font-weight: 500;
-                }
+                }}
             """)
         else:
             # Normal state
@@ -167,19 +173,19 @@ class QuickActionsSettingsView(KeyRecorderMixin, QWidget):
             else:
                 button.setText("Click to record shortcut")
 
-            button.setStyleSheet("""
-                QPushButton {
-                    background: #2c2c2c;
-                    color: #ffffff;
-                    border: 1px solid #374151;
+            button.setStyleSheet(f"""
+                QPushButton {{
+                    background: {c['surface']};
+                    color: {c['text']};
+                    border: 1px solid {c['border']};
                     border-radius: 8px;
                     font-size: 14px;
                     font-weight: 600;
-                }
-                QPushButton:hover {
-                    background: #333333;
-                    border-color: #4b5563;
-                }
+                }}
+                QPushButton:hover {{
+                    background: {c['border']};
+                    border-color: {c['text_secondary']};
+                }}
             """)
 
     def start_recording(self, target):
@@ -236,30 +242,31 @@ class QuickActionsSettingsView(KeyRecorderMixin, QWidget):
 
     def _update_save_button_style(self):
         """Update save button appearance based on enabled state"""
+        c = ThemeManager.get_palette()
         if self.save_btn.isEnabled():
-            self.save_btn.setStyleSheet("""
-                QPushButton {
-                    background: #3b82f6;
+            self.save_btn.setStyleSheet(f"""
+                QPushButton {{
+                    background: {c['accent']};
                     color: #ffffff;
                     border: none;
                     border-radius: 8px;
                     font-size: 14px;
                     font-weight: 600;
-                }
-                QPushButton:hover {
-                    background: #2563eb;
-                }
+                }}
+                QPushButton:hover {{
+                    background: {c['accent_hover']};
+                }}
             """)
         else:
-            self.save_btn.setStyleSheet("""
-                QPushButton {
-                    background: #333333;
-                    color: #666666;
-                    border: 1px solid #444444;
+            self.save_btn.setStyleSheet(f"""
+                QPushButton {{
+                    background: {c['surface']};
+                    color: {c['text_secondary']};
+                    border: 1px solid {c['border']};
                     border-radius: 8px;
                     font-size: 14px;
                     font-weight: 600;
-                }
+                }}
             """)
 
     def save_shortcuts(self):

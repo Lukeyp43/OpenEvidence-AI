@@ -15,6 +15,8 @@ except ImportError:
     from PyQt5.QtGui import QPixmap, QPainter, QCursor
     from PyQt5.QtSvg import QSvgRenderer
 
+from .theme_manager import ThemeManager
+
 
 
 class SettingsHomeView(QWidget):
@@ -30,21 +32,25 @@ class SettingsHomeView(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
 
+        # Get common palette
+        c = ThemeManager.get_palette()
+        icon_color = c['icon_color']
+
         # Scrollable content area
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
-        scroll.setStyleSheet("QScrollArea { background: #1e1e1e; border: none; }")
+        scroll.setStyleSheet(ThemeManager.get_scroll_area_style())
 
         content = QWidget()
-        content.setStyleSheet("background: #1e1e1e;")
+        content.setStyleSheet(f"background: {c['background']};")
         content_layout = QVBoxLayout(content)
         content_layout.setContentsMargins(24, 24, 24, 24)
         content_layout.setSpacing(24)
 
         # Header
         header = QLabel("Settings")
-        header.setStyleSheet("""
-            color: #ffffff;
+        header.setStyleSheet(f"""
+            color: {c['text']};
             font-size: 24px;
             font-weight: 700;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -60,9 +66,9 @@ class SettingsHomeView(QWidget):
         # Card 1: Templates
         templates_card = self.create_nav_card(
             title="Templates",
-            icon_svg="""<svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <rect x="10" y="8" width="28" height="32" rx="2" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M16 18h16M16 24h16M16 30h10" stroke="white" stroke-width="3" stroke-linecap="round"/>
+            icon_svg=f"""<svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect x="10" y="8" width="28" height="32" rx="2" stroke="{icon_color}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M16 18h16M16 24h16M16 30h10" stroke="{icon_color}" stroke-width="3" stroke-linecap="round"/>
             </svg>""",
             on_click=self.open_templates
         )
@@ -71,9 +77,9 @@ class SettingsHomeView(QWidget):
         # Card 2: Quick Actions
         quick_actions_card = self.create_nav_card(
             title="Quick Actions",
-            icon_svg="""<svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M13 24L17 14L24 4L31 14L35 24L31 34L24 44L17 34L13 24Z" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-                <circle cx="24" cy="24" r="4" stroke="white" stroke-width="3"/>
+            icon_svg=f"""<svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M13 24L17 14L24 4L31 14L35 24L31 34L24 44L17 34L13 24Z" stroke="{icon_color}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+                <circle cx="24" cy="24" r="4" stroke="{icon_color}" stroke-width="3"/>
             </svg>""",
             on_click=self.open_quick_actions
         )
@@ -99,7 +105,7 @@ class SettingsHomeView(QWidget):
 
         tutorial_btn = self.create_footer_link(
             text="How to Use This Add-on",
-            icon_svg="""<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#a1a1aa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            icon_svg=f"""<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="{c['text_secondary']}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <circle cx="12" cy="12" r="10"/>
                 <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
                 <path d="M12 17h.01"/>
@@ -121,7 +127,7 @@ class SettingsHomeView(QWidget):
         # Request Feature Button
         request_btn = self.create_footer_link(
             text="Request a Feature",
-            icon_svg="""<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#a1a1aa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            icon_svg=f"""<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="{c['text_secondary']}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/>
                 <path d="M9 18h6"/>
                 <path d="M10 22h4"/>
@@ -134,10 +140,10 @@ class SettingsHomeView(QWidget):
         separator_container = QWidget()
         separator_layout = QHBoxLayout(separator_container)
         separator_layout.setContentsMargins(16, 0, 16, 0)
-
+        
         separator = QLabel()
         separator.setFixedSize(1, 12)
-        separator.setStyleSheet("background: #3f3f46;")
+        separator.setStyleSheet(f"background: {c['border']};")
         separator_layout.addWidget(separator)
 
         feedback_row_layout.addWidget(separator_container)
@@ -145,7 +151,7 @@ class SettingsHomeView(QWidget):
         # Report Bug Button
         bug_btn = self.create_footer_link(
             text="Report a Bug",
-            icon_svg="""<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#a1a1aa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            icon_svg=f"""<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="{c['text_secondary']}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="m8 2 1.88 1.88"/>
                 <path d="M14.12 3.88 16 2"/>
                 <path d="M9 7.13v-1a3.003 3.003 0 1 1 6 0v1"/>
@@ -205,10 +211,12 @@ class SettingsHomeView(QWidget):
         icon_label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
         card_layout.addWidget(icon_label)
 
+        c = ThemeManager.get_palette()
+        
         # Title only (no description)
         title_label = QLabel(title)
-        title_label.setStyleSheet("""
-            color: #ffffff;
+        title_label.setStyleSheet(f"""
+            color: {c['text']};
             font-size: 15px;
             font-weight: 600;
             background: transparent;
@@ -219,8 +227,8 @@ class SettingsHomeView(QWidget):
 
         # Arrow icon
         arrow_label = QLabel("→")
-        arrow_label.setStyleSheet("""
-            color: #6b7280;
+        arrow_label.setStyleSheet(f"""
+            color: {c['text_secondary']};
             font-size: 20px;
             background: transparent;
             border: none;
@@ -228,18 +236,18 @@ class SettingsHomeView(QWidget):
         arrow_label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
         card_layout.addWidget(arrow_label)
 
-        # Card styling - match existing dark theme
-        card.setStyleSheet("""
-            QPushButton {
-                background: #2c2c2c;
-                border: 1px solid #374151;
+        # Card styling
+        card.setStyleSheet(f"""
+            QPushButton {{
+                background: {c['surface']};
+                border: 1px solid {c['border']};
                 border-radius: 12px;
                 text-align: left;
-            }
-            QPushButton:hover {
-                background: #333333;
-                border-color: #3b82f6;
-            }
+            }}
+            QPushButton:hover {{
+                background: {c['border']};
+                border-color: {c['accent']};
+            }}
         """)
 
         return card
@@ -251,14 +259,24 @@ class SettingsHomeView(QWidget):
         container.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
 
         # Set styling to mimic a hoverable button
-        container.setStyleSheet("""
-            QFrame {
+        c = ThemeManager.get_palette()
+        
+        # Set styling to mimic a hoverable button
+        # Using a subtle background change and text color change on hover
+        container.setStyleSheet(f"""
+            QFrame {{
                 background: transparent;
                 border-radius: 6px;
-            }
-            QFrame:hover {
-                background: rgba(255, 255, 255, 0.05);
-            }
+            }}
+            QFrame QLabel {{
+                color: {c['text_secondary']};
+            }}
+            QFrame:hover {{
+                background: {c['hover']};
+            }}
+            QFrame:hover QLabel {{
+                color: {c['text']};
+            }}
         """)
 
         # Layout for the container
@@ -291,7 +309,7 @@ class SettingsHomeView(QWidget):
 
         # Text Label
         text_label = QLabel(text)
-        text_label.setStyleSheet("background: transparent; border: none; color: #a1a1aa; font-size: 12px;")
+        text_label.setStyleSheet("background: transparent; border: none; font-size: 13px;")
         layout.addWidget(text_label)
 
         # Make the QFrame clickable by overriding mouseReleaseEvent

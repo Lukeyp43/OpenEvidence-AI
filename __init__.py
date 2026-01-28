@@ -8,8 +8,8 @@ from .utils import clean_html_text
 from .reviewer_highlight import setup_highlight_hooks
 from .analytics import init_analytics, try_send_daily_analytics, track_add_to_chat, track_ask_question, track_anki_open
 
-# Addon name constant
-ADDON_NAME = "the_ai_panel"
+from .analytics import init_analytics, try_send_daily_analytics, track_add_to_chat, track_ask_question, track_anki_open
+from .utils import ADDON_NAME
 
 # Global references
 dock_widget = None

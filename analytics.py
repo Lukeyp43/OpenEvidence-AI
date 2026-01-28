@@ -7,7 +7,8 @@ import threading
 from urllib import request, error
 
 
-ADDON_NAME = "the_ai_panel"
+from urllib import request, error
+from .utils import ADDON_NAME
 
 # Runtime state to track if we've recorded usage for this session
 _session_usage_tracked = False
