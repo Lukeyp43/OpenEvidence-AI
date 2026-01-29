@@ -4,6 +4,7 @@ from aqt import mw
 import sys
 import json
 import threading
+import uuid
 from urllib import request, error
 
 
@@ -43,6 +44,7 @@ def init_analytics():
 
         # Core metadata
         analytics["first_install_date"] = datetime.now().isoformat()
+        analytics["user_id"] = str(uuid.uuid4())
         analytics["platform"] = sys.platform  # darwin, win32, linux
         analytics["locale"] = locale_info.get("locale")  # e.g., "en_US"
         analytics["timezone"] = locale_info.get("timezone")  # e.g., "PST"
@@ -327,10 +329,16 @@ def send_analytics_background():
             # Get analytics data
             analytics = get_analytics_data()
 
+            # Ensure user_id exists (migration for existing users)
+            if not analytics.get("user_id"):
+                analytics["user_id"] = str(uuid.uuid4())
+                save_analytics_data(analytics)
+
             # Note: Server calculates engagement metrics from daily_usage
             # (total_sessions, sessions_with_messages, etc.)
             payload = {
                 # Core metadata
+                "user_id": analytics.get("user_id"),
                 "first_install_date": analytics.get("first_install_date"),
                 "platform": analytics.get("platform"),
                 "locale": analytics.get("locale"),
