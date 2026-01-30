@@ -64,3 +64,7 @@ You can change every shortcut.
 Have an idea or found a bug?
 *   [Feature Request](https://github.com/Lukeyp43/AI-Side-Panel/issues/new?labels=feature%20request)
 *   [Bug Report](https://github.com/Lukeyp43/AI-Side-Panel/issues/new?labels=bug)
+
+---
+
+<sub>**Privacy:** This add-on collects anonymous usage analytics (platform, features used, IP for rate limiting). No personal data or card content is accessed.</sub>
